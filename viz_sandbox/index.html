@@ -27,7 +27,6 @@ body {background-color: #f3fff0;}
 <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
 <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
-<script src="http://underscorejs.org/underscore-min.js"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
 <script src="https://cdn.rawgit.com/evanplaice/jquery-csv/master/src/jquery.csv.min.js"></script>
 
@@ -363,11 +362,21 @@ function make_colls_selector(selected_graph_name, box_id){
 	document.getElementById(box_id + "_colls_table").innerHTML = content;
 }
 
+function random_sample(datums, n_rows){
+	var indices = new Set();
+	while(indices.size < n_rows){
+		indices.add(Math.floor(Math.random()*datums.length));
+	}
+	var chosen = [];
+	indices.forEach(i => {chosen.push(datums[i]);});
+	return chosen;
+}
+
 function show_raw_data(id_string){
   document.getElementById(id_string + "_colls_table").innerHTML = "";
   num_of_rows = 10;
   gdiv = document.getElementById(id_string + "_graph");
-  ten_rand_datums = _.sample(datums, num_of_rows);
+  ten_rand_datums = random_sample(datums, num_of_rows);
   html = "<table class='mdl-data-table mdl-js-data-table mdl-shadow--2dp'>";
   html += "<thead><tr>";
   column_names = Object.keys(datums[0]).sort();
