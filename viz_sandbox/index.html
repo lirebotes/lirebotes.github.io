@@ -1,0 +1,795 @@
+<html>
+<head>
+
+<style>
+.vega-actions{display: none;}
+.mdl-cell {
+    padding: 20px;
+    background-color: #ffffff;
+}
+
+.mdl-cell--6-col {
+    padding: 20px;
+    background-color: #ffffff;
+}
+
+body {background-color: #f3fff0;}
+
+.mdl-textfield .mdl-textfield__label:after{
+	background-color: #000;
+}
+</style>
+<link rel="stylesheet" type="text/css" href="https://dc-js.github.io/dc.js/css/dc.css" />
+<script src="https://dc-js.github.io/dc.js/js/d3.js"></script>
+<script src="https://dc-js.github.io/dc.js/js/crossfilter.js"></script>
+<script src="https://dc-js.github.io/dc.js/js/dc.js"></script>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+<script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+<script src="http://underscorejs.org/underscore-min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+<script src="https://cdn.rawgit.com/evanplaice/jquery-csv/master/src/jquery.csv.min.js"></script>
+
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+<script>
+var types_for_viz_option = {'raw data': {},
+              'line chart': {'X-axis': ['quantitative', 'ordinal', 'temporal'], 'Y-axis': ['quantitative']},
+							'scatterplot': {'X-axis': ['ordinal','quantitative', 'temporal'], 'Y-axis': ['ordinal','quantitative']},
+							'histogram': {'X-axis': ['nominal','ordinal', 'temporal'], 'Y-axis': ['quantitative','ordinal']},
+							'heatmap': {'Row': ['nominal','ordinal', 'temporal'], 'Column': ['nominal', 'ordinal', 'temporal'], 'Color': ['ordinal','quantitative']},
+							'box and whisker': {'X-axis': ['nominal', 'temporal'], 'Y-axis': ['quantitative']},
+							'scatterplot, color': {'X-axis': ['ordinal','quantitative', 'temporal'], 'Y-axis': ['ordinal','quantitative'], 'Color': ['nominal', 'ordinal']}}
+
+viz_options = Object.keys(types_for_viz_option);
+
+function add_new_card(inner_html_content){
+	cell_id_str = "a" + Date.now().toString(36).substr(2, 10); + Math.random().toString(36).substr(2, 10);
+	new_div_html = "<i class='material-icons' style='z-index: 999; position: absolute; right: 3px; top: 3px;' onclick=\"kill_card('"+ cell_id_str +"');\">clear</i>";
+	new_div_html += "<br>";
+  new_div_html += "<div id='" + cell_id_str + "_graph' style='padding-bottom: 10px; width: 90%;'></div>";
+	viz_grid = document.getElementById("visualization_grid");
+	var newelement = document.createElement('div');
+	newelement.className = 'mdl-cell mdl-shadow--4dp';
+	newelement.id = cell_id_str + "_wrap";
+	newelement.style.position = "relative";
+  newelement.style.overflow = "scroll";
+	newelement.innerHTML = new_div_html;
+	viz_grid.insertBefore(newelement, viz_grid.childNodes[0]);
+	viz_cell_wrap = document.getElementById(cell_id_str + "_wrap");
+	selector_html = "\<select id='" + cell_id_str + "_gselector' onchange=\"show_viz_options('"+cell_id_str+"');\"\>"
+	selector_html += "<option disabled selected value>-- select visualization --</option>";
+	for(i=0;i<viz_options.length;i++){
+		selector_html += "\<option value='" + viz_options[i] + "'\>" + viz_options[i] + "\</option\>";
+	}
+	selector_html += "</select><br><div id='" + cell_id_str + "_colls_table" + "' style='padding-top: 5px;'></div>";
+	viz_cell_wrap.innerHTML += "<textarea style='margin-top: 10px; margin-bottom: 0px; width: 100%;'></textarea>";
+	viz_cell_wrap.innerHTML += selector_html;
+   $(function() {$("#" + newelement.id).resizable();});
+}
+</script>
+</head>
+<body>
+ <div id="vis-tooltip" class="vg-tooltip"></div>
+
+<div class="mdl-cell mdl-shadow--4dp">
+
+<button class="mdl-chip mdl-button--colored mdl-chip mdl-chip--contact" onclick="load_data_section_toggle()">
+	<span id="load_data_toggler" class="mdl-chip__contact mdl-color--red-500 mdl-color-text--white material-icons">keyboard_arrow_up</span>
+	<span class="mdl-chip__text">Data Acquisition</i>
+</button>
+&nbsp;&nbsp;&nbsp;&nbsp;
+<button class="mdl-chip mdl-button--colored mdl-chip mdl-chip--contact" onclick="add_new_card()" id="add_new_card_button" style='display:none;'>
+	<span id="load_data_toggler" class="mdl-chip__contact mdl-color--green-500 mdl-color-text--white material-icons">add</span>
+	<span class="mdl-chip__text">New Visualization</i>
+</button>
+
+<div id="load_data_section">
+	<br>
+    <input class="mdl-textfield__input" type="file" id="fileupload_input">
+	<br>
+	<div class="mdl-textfield mdl-js-textfield">
+    	<input class="mdl-textfield__input" type="text" id="URL_input">
+    	<label class="mdl-textfield__label" for="URL_input">or link to CSV</label>
+	</div>
+	<div id="errors" class="content__subtitle"></div>
+	<div id="last_download" class="content__subtitle" style="text-align: left;"></div>
+	<br>
+
+	<div id="data_type_changer"></div>
+
+</div>
+</div>
+
+
+<div class="content-grid mdl-grid" id="visualization_grid">
+</div>
+
+</body>
+
+<script>
+var is_load_data_open = true;
+function load_data_section_toggle(){
+	is_load_data_open = !is_load_data_open;
+	if(is_load_data_open){
+		document.getElementById("load_data_toggler").innerHTML = "keyboard_arrow_up";
+		document.getElementById("load_data_section").style.display = "table";
+	}
+	else{
+		document.getElementById("load_data_toggler").innerHTML = "keyboard_arrow_down";
+		document.getElementById("load_data_section").style.display = "none";
+	}
+}
+</script>
+<script>
+var filename, column_names, column_types, datums;
+var loading = false;
+
+// Assume type for each column.
+// Although there are 4 types in vega-lite (quantitative, nominal, ordinal, temporal),
+// I currently only support quantitative, nominal, and ordinal
+function assign_column_types(){
+	column_types = {};
+	column_names.forEach(function(coll){
+		trials = 50;
+		non_numerics = 0;
+		pos_integers = 0;
+		other_num = 0;
+		for(i=0;i<trials; i++){
+			d = datums[Math.floor(Math.random() * datums.length)][coll];
+			if(isNaN(d)){non_numerics++;}
+			else if(/^\d+$/.test(d)){pos_integers++; other_num++;}
+			else{other_num++;}
+		}
+		if((trials * 0.7) < pos_integers){column_types[coll] = "ordinal";}
+		else if((trials * 0.7) < other_num){column_types[coll] = "quantitative";}
+		else{column_types[coll] = "nominal";}
+	})
+}
+
+function clean_datums(){
+	column_names = Object.keys(datums[0]);
+	assign_column_types();
+	for(di=0; di < datums.length; di++){
+		for(ci=0; ci<column_names.length; ci++){
+			coll = column_names[ci];
+			if(column_types[coll] == "quantitative" || column_types[coll] == "ordinal"){
+				val = datums[di][coll];
+				if(isNaN(val)){console.log("Deleting " + datums[di]); datums.splice(di,1); break;}
+				//else{datums[di][coll] = parseFloat(datums[di][coll]);} // I think we can use a string for quantitative, which makes transitioning to other types easier
+			}
+		}
+	}
+}
+
+function change_type(selector_id, coll_name){
+	selector = document.getElementById(selector_id)
+	column_types[coll_name] = selector.options[selector.selectedIndex].value;
+	for(di=0; di < datums.length; di++){
+		for(ci=0; ci<column_names.length; ci++){
+			coll = column_names[ci];
+			if(column_types[coll] == "quantitative" || column_types[coll] == "ordinal"){
+				val = datums[di][coll];
+				if(isNaN(val)){console.log("Deleting " + datums[di]); datums.splice(di,1); break;}
+				//else{datums[di][coll] = parseFloat(datums[di][coll]);} // I think we can use a string for quantitative, which makes transitioning to other types easier
+			}
+		}
+	}
+}
+
+function make_types_selector(coll_name, coll_type, avail){
+	id = "type_changer_" + coll_name;
+	selector = "<select id='" + id + "' onchange=\"change_type('" + id + "', '" + coll_name + "');\">";
+	for(a=0;a<avail.length;a++){
+		selector += "<option value='" + avail[a] + "'>" + avail[a] + "</option>";
+	}
+	selector += "</select>";
+	return selector;
+}
+
+function show_data_type_changer(){
+	content = "<table class='mdl-data-table mdl-js-data-table mdl-shadow--2dp'>";
+	content += "<thead><tr><th class='mdl-data-table__cell--non-numeric'>Variable</th><th class='mdl-data-table__cell--non-numeric'>Data Type</th></tr></thead><tbody>";
+	for(i=0;i<Object.keys(column_types).length;i++){
+		coll_name = Object.keys(column_types)[i];
+		coll_type = column_types[coll_name];
+		var avail_types;
+		if(coll_type == "ordinal"){ // assume all non-negative integers are quantitative, allow user to revert to ordinal
+			column_types[coll_name] = "quantitative";
+			avail_types = ["quantitative", "ordinal", "nominal", "temporal"];}
+		else if(coll_type == "quantitative"){avail_types = ["quantitative", "nominal"];}
+		else{avail_types = ["nominal"];}
+		row = "<tr><td class='mdl-data-table__cell--non-numeric'>";
+		row += coll_name;
+		row += "</td><td class='mdl-data-table__cell--non-numeric'>";
+		row += make_types_selector(coll_name, coll_type, avail_types);
+		row += "</td></tr>";
+		content += row;
+	}
+	content += "<tbody></table>";
+	document.getElementById("data_type_changer").innerHTML = content;
+}
+
+function report_download_failure(){
+	document.getElementById("errors").innerHTML = "Download Unsuccessful";
+}
+
+function getTime(){
+	dobj = new Date();
+	hours = (dobj.getHours() % 12)
+	if(hours == 0){hours=12;}
+	minutes = dobj.getMinutes();
+	if(minutes<10){minutes = "0" + minutes;}
+	date_str = hours + ":" + minutes;
+	if(dobj.getHours() >= 12){return date_str + " PM";}
+	else{return date_str + " AM";}
+}
+
+function report_download_success(){
+	loading=false;
+	document.getElementById("errors").innerHTML = "Download Successful"; //<br>Inferring data types...<br>Removing corrupt data...<br>";
+	document.getElementById("last_download").innerHTML = "<br>Last acquisition at " + getTime() + " from <br><i>" + filename + "</i>";
+	show_data_type_changer();
+	is_load_data_open = false;
+	load_data_section_toggle();
+	document.getElementById("add_new_card_button").style.display = 'initial';
+}
+
+var all_visualizations = {},
+    crossfilter_obj;
+
+function add_new_visualization(name, viz, dim, group){
+  all_visualizations[name] = {"viz": viz, "dim": dim, "group": group};
+}
+
+function delete_visualization(name){
+  if(!(name in all_visualizations)){return;}
+  dc.deregisterChart(all_visualizations[name].viz, all_visualizations[name].group);
+  all_visualizations[name].group.dispose();
+  all_visualizations[name].dim.dispose();
+  document.getElementById(name + "_graph").innerHTML = '';
+  delete all_visualizations[name];
+}
+
+function kill_card(name){
+  document.getElementById(name + '_wrap').outerHTML='';
+  delete_visualization(name);
+}
+
+function load_dataset(data){
+	data = data.split("\r").join("\n");
+	data = data.split("\n");
+	data[0] = data[0].split(".").join(" ");
+	data = data.join("\n");
+	datums = $.csv.toObjects(data);
+	clean_datums();
+    crossfilter_obj = crossfilter(datums);
+}
+
+function load_dataset_from_url(URL){
+	document.getElementById("errors").innerHTML = "Loading...";
+	loading = true;
+	filename = URL;
+	$.get(filename, load_dataset)
+		.fail(report_download_failure)
+		.done(report_download_success);
+}
+
+
+function read_file_upload(file) {
+	return new Promise(function(yay, nay){
+		file_upload_reader = new FileReader();
+	    file_upload_reader.onload = function(e){return yay(event.target.result);};
+	    file_upload_reader.onerror = function(e){return nay(e);};
+	    file_upload_reader.readAsText(file)
+  });
+}
+
+
+// Listen for file upload
+$("#fileupload_input").on('change', function(){
+	document.getElementById("errors").innerHTML = "Loading...";
+	loading = true;
+	uploaded_file = $("#fileupload_input")[0].files[0];
+	filename = uploaded_file.name;
+	read_file_upload(uploaded_file)
+		.then(data => {load_dataset(data); report_download_success()})
+		.catch(error => report_download_failure());
+})
+
+// Listen for URL input
+$("#URL_input").on('change paste input', function(){
+	given_URL = document.getElementById("URL_input").value;
+	if(filename != given_URL){
+		if(!Boolean(given_URL)){document.getElementById("errors").innerHTML = "";}
+		else{load_dataset_from_url(given_URL);}}})
+
+</script>
+<script>
+function get_selector_value(id_string){
+	selector = document.getElementById(id_string);
+	return selector.options[selector.selectedIndex].value;
+}
+
+function get_columns_of_types(types){
+	coll_names = [];
+	keys = Object.keys(column_types);
+	for(i=0;i<keys.length;i++){
+		for(t=0;t<types.length;t++){
+			if(types[t] == column_types[keys[i]]){
+				coll_names.push(keys[i]);
+				break;
+			}
+		}
+	}
+	return coll_names;
+}
+
+function make_coll_selector(avail_types, box_id, coll_name){
+	selector_id = box_id + "_selector_" + coll_name;
+	avail_colls = get_columns_of_types(avail_types);
+	if(avail_colls.length == 0){
+		return "<select id='" + selector_id + "' style='display: none;'\"></select><span style='color:red'>no variables of any types: " + avail_types + "</span>";
+	}
+	selector = "\<select id='" + selector_id + "' onchange=\"show_graph('" + box_id + "');\"\>";
+	selector += "\<option disabled selected value\>Choose Variable\</option\>";
+	for(a=0;a<avail_colls.length;a++){
+		selector += "\<option value='" + avail_colls[a] + "'\>" + avail_colls[a] + "\</option\>";
+	}
+	selector += "\</select\>";
+	return selector;
+}
+
+function make_colls_selector(selected_graph_name, box_id){
+	content = "<table class='mdl-data-table mdl-js-data-table mdl-shadow--2dp'>";
+	content += "<thead><tr><th class='mdl-data-table__cell--non-numeric'>Axis</th><th class='mdl-data-table__cell--non-numeric'>Available Variables</th></tr></thead><tbody>";
+	types_dict = types_for_viz_option[selected_graph_name];
+	for(ki=0;ki<Object.keys(types_dict).length;ki++){
+		coll_name = Object.keys(types_dict)[ki];
+		axis_avail_types = types_dict[coll_name];
+		row = "<tr><td class='mdl-data-table__cell--non-numeric'>";
+		row += coll_name;
+		row += "</td><td class='mdl-data-table__cell--non-numeric'>";
+		row += make_coll_selector(axis_avail_types, box_id, coll_name);
+		row += "</td></tr>";
+		content += row;
+	}
+  content += "<tr><td class='mdl-data-table__cell--non-numeric'>Brushing?</td><td class='mdl-data-table__cell--non-numeric'>";
+  content += "<select id='" + box_id + "_selector_brushing' onchange='show_graph(\""+ box_id +"\");'><option value='brushing'>Brushing</option><option value='probing'>Probing</option></select>";
+  content += "</td></tr>";
+	content += "<tbody></table>";
+	document.getElementById(box_id + "_colls_table").innerHTML = content;
+}
+
+function show_raw_data(id_string){
+  document.getElementById(id_string + "_colls_table").innerHTML = "";
+  num_of_rows = 10;
+  gdiv = document.getElementById(id_string + "_graph");
+  ten_rand_datums = _.sample(datums, num_of_rows);
+  html = "<table class='mdl-data-table mdl-js-data-table mdl-shadow--2dp'>";
+  html += "<thead><tr>";
+  column_names = Object.keys(datums[0]).sort();
+  column_names.map(function(column_name){html += "<th>" + column_name.split(" ").join("<br>") + "</th>";});
+  html += "</tr></thead><tbody>";
+  for(row_num=0;row_num<num_of_rows; row_num++){
+    html += "<tr>";
+    column_names.map(function(column_name){html += "<td>" + datums[row_num][column_name] + "</td>";});
+    html += "</tr>";
+  }
+  html += "</tbody></table>";
+  gdiv.innerHTML = html;
+}
+
+
+function show_viz_options(id_string){
+	selected_viz_name = get_selector_value(id_string + "_gselector");
+  if(selected_viz_name == 'raw data'){show_raw_data(id_string ); return;}
+	selector_types = types_for_viz_option[selected_viz_name];
+	options = [];
+	for(st=0;st<selector_types.length;st++){
+		options.push(get_columns_of_types(selector_types[st]));
+	}
+	make_colls_selector(selected_viz_name, id_string);
+}
+
+
+// DC
+var visualization_extent_padding = 0.015;
+
+function probing_title_fn(d){
+  var text = [];
+  if(d.key.constructor.name == "Array"){
+    var text = [];
+    for(i in d.key){
+      var axn;
+      if(i == 0){axn = "X axis";}
+      if(i == 1){axn = "Y axis";}
+      if(i > 1){axn = "Axis " + i;}
+      text.push(axn + ":   " + d.key[i]);
+    }
+  }
+  else if(d.key.constructor.name == "Object"){
+    for(i in Object.keys(d.key)){
+      var k = Object.keys(d.key)[i];
+      text.push(k + " :   " + d.key[k]);
+    }
+  }
+  else {text.push(d.key)}
+  if(d.value.constructor.name == "Object"){
+    text.push("\nStats from averaging:");
+    for(i in Object.keys(d.value)){
+      var k = Object.keys(d.value)[i];
+      text.push("\t" + k + " :   " + d.value[k]);
+    }
+  }
+  return text.join("\n");
+}
+
+
+
+function make_scatterplot(id, columns){
+  dimension = crossfilter_obj.dimension(function(d){return [+d[columns["X-axis"]], +d[columns["Y-axis"]]];});
+  add_new_visualization(id, dc.scatterPlot("#" + id + "_graph"), dimension, dimension.group());
+  x_extent = d3.extent(datums.map(function(d){return +d[columns["X-axis"]];}));
+  x_range = +x_extent[1] - +x_extent[0];
+  x_extent = [+x_extent[0] - (visualization_extent_padding * x_range), +x_extent[1] + (visualization_extent_padding * x_range)];
+  y_extent = d3.extent(datums.map(function(d){return +d[columns["Y-axis"]];}));
+  y_range = +y_extent[1] - +y_extent[0];
+  y_extent = [+y_extent[0] - (visualization_extent_padding * y_range), +y_extent[1] + (visualization_extent_padding * y_range)];
+  all_visualizations[id].viz
+                        .width(Math.floor($("#" + id + "_graph").width()))
+                        .height(Math.floor($("#" + id + "_graph").width()))
+                        .x(d3.scale.linear().domain(x_extent))
+                        .y(d3.scale.linear().domain(y_extent))
+                        .yAxisLabel(columns["Y-axis"])
+                        .xAxisLabel(columns["X-axis"])
+                        .clipPadding(10)
+                        .excludedOpacity(0.4)
+                        .dimension(all_visualizations[id].dim)
+                        .group(all_visualizations[id].group);
+  if(document.getElementById(id + "_selector_brushing").value == "probing"){
+      all_visualizations[id].viz
+      .brushOn(false)
+      .renderTitle(true)
+      .title(probing_title_fn);
+  }
+  all_visualizations[id].viz.render();
+}
+
+
+function make_color_scatterplot(id, columns){
+  dimension = crossfilter_obj.dimension(function(d){return [+d[columns["X-axis"]], +d[columns["Y-axis"]]];});
+  group = dimension.group().reduce(
+    function (p, v) {
+        p.count = p.count ? p.count + +v[columns["Y-axis"]] : 1;
+        p[columns["Color"]] = v[columns["Color"]];
+        return p;
+    },
+    function (p, v) {
+        p.count -= +v[columns["Color"]];
+        return p;
+    },
+    function () { return {}; });
+
+  var colorSet = new Set();
+  datums.map(function(d){colorSet.add(d[columns["Color"]]);});
+  colorSet = Array.from(colorSet);
+  var colors_google = function(n) {
+                        var colors_g = ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262", "#5574a6", "#3b3eac"];
+	                      colors = [];
+	                      for(i=0;i<n;i++){colors[i] = colors_g[i % colors_g.length];};
+	                      return colors;};
+  var d3_color_scale = d3.scale.ordinal().domain(colorSet).range(colors_google(colorSet.length));
+  add_new_visualization(id, dc.scatterPlot("#" + id + "_graph"), dimension, group);
+  x_extent = d3.extent(datums.map(function(d){return +d[columns["X-axis"]];}));
+  x_range = +x_extent[1] - +x_extent[0];
+  x_extent = [+x_extent[0] - (visualization_extent_padding * x_range), +x_extent[1] + (visualization_extent_padding * x_range)];
+  y_extent = d3.extent(datums.map(function(d){return +d[columns["Y-axis"]];}));
+  y_range = +y_extent[1] - +y_extent[0];
+  y_extent = [+y_extent[0] - (visualization_extent_padding * y_range), +y_extent[1] + (visualization_extent_padding * y_range)];
+  all_visualizations[id].viz
+                        .width(Math.floor($("#" + id + "_graph").width()))
+                        .height(Math.floor($("#" + id + "_graph").width()))
+                        .x(d3.scale.linear().domain(x_extent))
+                        .y(d3.scale.linear().domain(y_extent))
+                        .yAxisLabel(columns["Y-axis"])
+                        .xAxisLabel(columns["X-axis"])
+                        .colors(d3_color_scale)
+                        .clipPadding(10)
+                        .excludedOpacity(0.4)
+                        .dimension(all_visualizations[id].dim)
+                        .group(all_visualizations[id].group)
+                        .existenceAccessor(function(d) { return d.value.count; })
+                        .colorAccessor(function (d) { return d.value[columns["Color"]]; });
+  if(document.getElementById(id + "_selector_brushing").value == "probing"){
+      all_visualizations[id].viz
+      .brushOn(false)
+      .renderTitle(true)
+      .title(probing_title_fn);
+  }
+  all_visualizations[id].viz.render();
+  // make the legend
+  document.getElementById(id + "_graph").append("Legend");
+  legend_div = document.createElement('div');
+  legend_div.style.float = "right";
+  legend_div.id = id + "_legend";
+  document.getElementById(id + "_graph").appendChild(legend_div);
+  for(i in colorSet){colorSet[i] = {val: colorSet[i], index: i};}
+  var lviz = dc.heatMap("#" + id + "_legend"),
+      ldim = crossfilter(colorSet).dimension(function(d) { return [+d.index, 1]; }),
+      lgroup = ldim.group();
+  lviz
+    .width(Math.floor($("#" + id + "_graph").width()))
+    .height(Math.floor($("#" + id + "_graph").width() * 0.2))
+    .dimension(ldim)
+    .group(lgroup)
+    .colorAccessor(function(d){return colorSet[+d.key[0]].val;})
+    .keyAccessor(function(d){return +d.key[0];})
+    .valueAccessor(function(d){return 1;})
+    .colsLabel(function(d){return colorSet[d].val;})
+    .rowsLabel(function(d){return "";})
+    .colors(d3_color_scale)
+    .xBorderRadius(0)
+    .yBorderRadius(0)
+    .renderTitle(false)
+    .render();
+  dc.deregisterChart(lviz, lgroup);
+}
+
+
+function make_line_chart(id, columns){
+  dimension = crossfilter_obj.dimension(function(d){return +d[columns["X-axis"]];});
+  group = dimension.group().reduce(function(p, v) {
+          ++p.count;
+          p.total += +v[columns["Y-axis"]];
+          if (p.count == 0) {
+              p.average = 0;
+          } else {
+              p.average = p.total / p.count;
+          };
+          return p;
+      },
+      function(p, v) {
+          --p.count;
+          p.total -= +v[columns["Y-axis"]];
+          if (p.count == 0) {
+              p.average = 0;
+          } else {
+              p.average = p.total / p.count;
+          };
+          return p;
+      },
+      function() {
+          return {
+              count: 0,
+              total: 0,
+              average: 0
+          };
+  });
+  add_new_visualization(id, dc.lineChart("#" + id + "_graph"), dimension, group);
+  x_extent = d3.extent(datums.map(function(d){return +d[columns["X-axis"]];}));
+  x_range = +x_extent[1] - +x_extent[0];
+  x_extent = [+x_extent[0] - (visualization_extent_padding * x_range), +x_extent[1] + (visualization_extent_padding * x_range)];
+  all_visualizations[id].viz
+                        .width(Math.floor($("#" + id + "_graph").width()))
+                        .height(Math.floor($("#" + id + "_graph").width()))
+                        .x(d3.scale.linear().domain(x_extent))
+                        .elasticY(true)
+                        .yAxisLabel("Average " + columns["Y-axis"])
+                        .xAxisLabel(columns["X-axis"])
+                        .dimension(all_visualizations[id].dim)
+                        .group(all_visualizations[id].group)
+                        .valueAccessor(function(p) { return p.value.average; });
+  if(document.getElementById(id + "_selector_brushing").value == "probing"){
+      all_visualizations[id].viz
+      .brushOn(false)
+      .renderTitle(true)
+      .title(probing_title_fn);
+  }
+  all_visualizations[id].viz.render();
+}
+
+function make_box_and_whisker(id, columns){
+  y_extent = d3.extent(datums.map(function(d){return +d[columns["Y-axis"]];}));
+  y_range = +y_extent[1] - +y_extent[0];
+  y_extent = [+y_extent[0] - (visualization_extent_padding * y_range), +y_extent[1] + (visualization_extent_padding * y_range)];
+  dimension = crossfilter_obj.dimension(function(d){return d[columns["X-axis"]];});
+  group = dimension.group().reduce(
+    function(p,v) {
+          p.push(v[columns["Y-axis"]]);
+          return p;
+        },
+        function(p,v) {
+          p.splice(p.indexOf(v[columns["Y-axis"]]), 1);
+          return p;
+        },
+        function() {
+          return [];
+        });
+  add_new_visualization(id, dc.boxPlot("#" + id + "_graph"), dimension, group);
+  all_visualizations[id].viz
+                        .width(Math.floor($("#" + id + "_graph").width()))
+                        .height(Math.floor($("#" + id + "_graph").width()))
+                        .y(d3.scale.linear().domain(y_extent))
+                        .yAxisLabel(columns["Y-axis"])
+                        .xAxisLabel(columns["X-axis"])
+                        .y(d3.scale.linear().domain(y_extent))
+                        .yAxisPadding('5%')
+                        .dimension(all_visualizations[id].dim)
+                        .group(all_visualizations[id].group);
+  if(document.getElementById(id + "_selector_brushing").value == "probing"){
+      all_visualizations[id].viz
+      .brushOn(false)
+      .renderTitle(true)
+      .title(probing_title_fn);
+  }
+  all_visualizations[id].viz.render();
+}
+
+function memoize( fn ) {
+    return function () {
+        var args = Array.prototype.slice.call(arguments),
+            hash = "",
+            i = args.length;
+        currentArg = null;
+        while (i--) {
+            currentArg = args[i];
+            hash += (currentArg === Object(currentArg)) ?
+            JSON.stringify(currentArg) : currentArg;
+            fn.memoize || (fn.memoize = {});
+        }
+        return (hash in fn.memoize) ? fn.memoize[hash] : fn.memoize[hash] = fn.apply(this, args);
+    };
+}
+
+function make_heatmap(id, columns){
+  var color_range = ['#ffffe0','#ffedbf','#ffdaa3','#ffc88d','#ffb27c','#ff9c70','#fb8768','#f47461','#eb5f5b','#df4c54','#d3394a','#c3273e','#b3152f','#9f051c','#8b0000'],
+      dimension = crossfilter_obj.dimension(function(d) {return [d[columns["Column"]], d[columns["Row"]]];}),
+      group = dimension.group().reduce(function(p, v) {
+                ++p.count;
+                p.total += +v[columns["Color"]];
+                p.average = (p.count == 0)? 0 : (p.total / p.count);
+                return p;
+            },
+            function(p, v) {
+                --p.count;
+                p.total -= +v[columns["Color"]];
+                p.average = (p.count == 0)? 0 : (p.total / p.count);
+                return p;
+            },
+            function() {
+                return {
+                    count: 0,
+                    total: 0,
+                    average: 0
+                };});
+  var d3_color_scale_orig = d3.scale.quantile()
+                        .domain(datums.map(function(d) {return +d[columns["Color"]];}))
+                        .range(color_range);
+  d3_color_scale = memoize(d3_color_scale_orig);
+  add_new_visualization(id, dc.heatMap("#" + id + "_graph"), dimension, group);
+  all_visualizations[id].viz
+    .width(Math.floor($("#" + id + "_graph").width()))
+    .height(Math.floor($("#" + id + "_graph").width()))
+    .xBorderRadius(0)
+    .yBorderRadius(0)
+    .dimension(dimension)
+    .group(group)
+    .keyAccessor(function(d) {return isNaN(+d.key[0])? d.key[0] : +d.key[0];})
+    .valueAccessor(function(d) { return isNaN(+d.key[1])? d.key[1] : +d.key[1]; })
+    .colorAccessor(function(d) {return +d.value.average;})
+    .colors(d3_color_scale);
+  if(true){
+      all_visualizations[id].viz
+        .renderTitle(true)
+        .title(probing_title_fn);
+    }
+  all_visualizations[id].viz.render();
+  document.getElementById(id + "_graph").append("Legend (quantile scale)");
+  legend_div = document.createElement('div');
+  legend_div.style.float = "right";
+  legend_div.id = id + "_legend";
+  document.getElementById(id + "_graph").appendChild(legend_div);
+  var heatArr = [],
+      sorted_colors = datums.map(function(d){return +d[columns["Color"]];}).sort(function(a, b){return a - b;});
+  for(i in color_range){
+    idx = Math.floor(i * (sorted_colors.length - 1) / (color_range.length - 1));
+    heatArr.push({val: sorted_colors[idx], index: i});
+  }
+  var lviz = dc.heatMap("#" + id + "_legend"),
+      ldim = crossfilter(heatArr).dimension(function(d) { return [+d.index, 1]; }),
+      lgroup = ldim.group();
+  lviz
+    .width(Math.floor($("#" + id + "_graph").width()))
+    .height(Math.floor($("#" + id + "_graph").width() * 0.2))
+    .dimension(ldim)
+    .group(lgroup)
+    .colorAccessor(function(d){return heatArr[+d.key[0]].val;})
+    .keyAccessor(function(d){return +d.key[0];})
+    .valueAccessor(function(d){return 1;})
+    .colsLabel(function(d){return heatArr[d].val;})
+    .rowsLabel(function(d){return "";})
+    .colors(d3_color_scale)
+    .xBorderRadius(0)
+    .yBorderRadius(0)
+    .renderTitle(false)
+    .render();
+  dc.deregisterChart(lviz, lgroup);
+}
+
+function make_histogram(id, columns){
+  dimension = crossfilter_obj.dimension(function(d){return isNaN(+d[columns["X-axis"]])? d[columns["X-axis"]] : +d[columns["X-axis"]];});
+  group = dimension.group().reduce(function(p, v) {
+          ++p.count;
+          p.total += +v[columns["Y-axis"]];
+          if (p.count == 0) {
+              p.average = 0;
+          } else {
+              p.average = p.total / p.count;
+          };
+          return p;
+      },
+      function(p, v) {
+          --p.count;
+          p.total -= +v[columns["Y-axis"]];
+          if (p.count == 0) {
+              p.average = 0;
+          } else {
+              p.average = p.total / p.count;
+          };
+          return p;
+      },
+      function() {
+          return {
+              count: 0,
+              total: 0,
+              average: 0
+          };});
+  add_new_visualization(id, dc.barChart("#" + id + "_graph"), dimension, group);
+  all_visualizations[id].viz
+    .width(Math.floor($("#" + id + "_graph").width()))
+    .height(Math.floor($("#" + id + "_graph").width()))
+    .dimension(dimension)
+    .group(group)
+    .x(d3.scale.ordinal())
+    .xUnits(dc.units.ordinal)
+    .valueAccessor(function(d) { return +d.value.average; })
+    .xAxisLabel(columns["X-axis"])
+    .yAxisLabel("Average " + columns["Y-axis"])
+    .barPadding(0.1)
+    .outerPadding(0.05)
+    .elasticY(true);
+    if(true){
+      all_visualizations[id].viz
+        .renderTitle(true)
+        .title(probing_title_fn);
+    }
+    all_visualizations[id].viz.render();
+}
+
+
+
+
+var graph_functions = {'scatterplot': make_scatterplot, 'line chart': make_line_chart, 'heatmap': make_heatmap, 'box and whisker': make_box_and_whisker, 'histogram': make_histogram, 'scatterplot, color': make_color_scatterplot};
+
+
+function show_graph(box_id){
+  graph_width = 1 * document.getElementById(box_id + "_colls_table").offsetWidth;
+	card_graph_div = document.getElementById(box_id);
+	graph_type = get_selector_value(box_id + "_gselector");
+	chosen_column_names = {};
+	graph_axis = Object.keys(types_for_viz_option[graph_type]);
+	for(ci=0;ci<graph_axis.length;ci++){
+		coll_v = get_selector_value(box_id + "_selector_" + graph_axis[ci]);
+		if(coll_v == ""){return false;}
+		else{chosen_column_names[graph_axis[ci]] = coll_v;}
+	}
+  delete_visualization(box_id);
+  graph_function = graph_functions[graph_type];
+  graph_function( box_id, chosen_column_names);
+}
+
+</script>
+</html>

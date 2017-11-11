@@ -1,0 +1,106 @@
+<meta charset='utf-8'>
+<html>
+
+<script>
+var emoji_data = null,
+emoji_list = null;
+
+fetch('emoji_vecs.json').then(res => res.json()).then((out) => respond_to_json(out)).catch(err => {throw err});
+
+function respond_to_json(data){
+	emoji_data = data;
+	emoji_list = Array.from(Object.keys(emoji_data.norms));
+	document.getElementById('emoji_list').innerHTML = "'" + emoji_list.join("', '") + "'";
+}
+
+function dot_product(vec1, vec2){
+	return vec1.reduce((sum,a,i) => sum+(a*vec2[i]), 0);
+}
+
+function euc_norm(vec){
+	return Math.sqrt(dot_product(vec,vec));
+}
+
+function cosine(vec, norm, emoji){
+	var dot = dot_product(vec, emoji_data.vecs[emoji]),
+	angle = Math.acos(dot / (norm * emoji_data.norms[emoji]));
+	return angle;
+}
+
+function nearest_emojis(vec){
+	var norm = euc_norm(vec),
+	pairs = emoji_list.map(em => [em, cosine(vec,norm,em)]);
+	return pairs.sort((a,b)=>a[1]-b[1]);
+}
+
+function ensure_vec(emoji_or_vec){
+	if(typeof(emoji_or_vec) != "string"){return emoji_or_vec;}
+	if(false == emoji_data.vecs.hasOwnProperty(emoji_or_vec)){alert("\""+emoji_or_vec+"\" not in vocabulary");}
+	return emoji_data.vecs[emoji_or_vec];
+}
+
+var vec = {
+	sub: function(a,b){
+		var [ea, eb] = [ensure_vec(a), ensure_vec(b)];
+		return ea.map((x,i) => x-eb[i]);
+	},
+	add: function(a,b){
+		var [ea, eb] = [ensure_vec(a), ensure_vec(b)];
+		return ea.map((x,i) => x+eb[i]);
+	},
+	avg: function(a,b){
+		var [ea, eb] = [ensure_vec(a), ensure_vec(b)];
+		return ea.map((x,i) => (x+eb[i])/2);
+	},
+	negate: function(a){
+		ea = ensure_vec(a);
+		return ea.map(x => -x);
+	}
+}
+
+function show_top_5(emoji_or_vec){
+	var vec = ensure_vec(emoji_or_vec),
+	nearest = nearest_emojis(vec),
+	div = document.getElementById("top_emojis");
+	div.innerHTML = "";
+	for(var i=0;i<5;i++){
+		var [em,angle] = nearest[i];
+		div.innerHTML += "<br>" + em + ": " + angle.toPrecision(4);
+	}
+}
+
+function show_query(query){
+	var parsed = query;
+	parsed = parsed.replace("add", "vec.add");
+	parsed = parsed.replace("sub", "vec.sub");
+	parsed = parsed.replace("avg", "vec.avg");
+	parsed = parsed.replace("negate", "vec.negate");
+	// wrap emojis in quotes.  Emoji is too weird for a solution this simple
+	//parsed = parsed.split(/([\uD800-\uDBFF][\uDC00-\uDFFF])/).join("'");
+	console.log(parsed);
+	show_top_5(eval(parsed));
+}
+
+function try_show_query(query){
+	try{show_query(query);}
+	catch(err){}
+}
+
+</script>
+
+<head>
+</head>
+
+<body>
+List of emojis in the vocabulary:<br>
+<div id='emoji_list' style='max-height: 150; overflow: scroll;'></div>
+<br><br>
+Unary operators: negate (multiplies vector by -1) <br>
+Binary operators: add, sub, avg <br>
+Example query: <text style='color: red;'>add(sub('💵', '🇺🇸'), '🇬🇧')</text> <br>
+<input type='text' onchange='try_show_query(this.value)'></input> (hit enter!)
+<br>
+<div id='top_emojis' ></div>
+
+</body>
+</html>
