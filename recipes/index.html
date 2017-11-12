@@ -1,0 +1,608 @@
+<html>
+<head>
+<title>Recipe Exploration</title>
+<link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.red-green.min.css">
+<style>
+
+ul {
+    display: inline-block;
+    vertical-align: top;
+}
+svg {
+	overflow: visible;
+}
+.panel {
+    stroke: black;
+    fill: white;
+}
+.bg {
+    fill: white;
+}
+.label {
+	font-size: 4px;
+}
+.label:hover {
+	font-size: 18px;
+	fill: red;
+	z-index: 999;
+}
+.link {
+    stroke: silver;
+    stroke-opacity: 0.05
+}
+.label-node {
+    fill: silver;
+    r: 2.5
+}
+.active {
+    r: 7;
+    z-index: -1;
+    content: "<animate attributeType='XML' attributeName='opacity' values='0.2;1;0.2' dur='1s' repeatCount='indefinite'></animate>";
+}
+
+.axis path,
+.axis line {
+	fill: none;
+	stroke: #000;
+	shape-rendering: crispEdges;
+}
+
+#loading {
+   width: 100%;
+   height: 100%;
+   position: fixed;
+   display: block;
+   opacity: 1;
+   background-color: #f5f5f5;
+   z-index: 99999;
+}
+
+span.mdl-chip__contact{
+	line-height: inherit;
+}
+</style>
+</head>
+<body style="background-color: #f5f5f5;" onload="document.getElementById('loading').style.visibility = 'hidden';">
+
+<div id="loading">
+  <center><h1 style='font-weight: 800;'><br><br>Loading...</h1></center>
+</div>
+
+<script>
+//import data
+var dataset;
+var oReq = new XMLHttpRequest();
+oReq.onload = reqListener;
+oReq.open("get", "deps/dataset.json", false);
+oReq.send();
+function reqListener(e) {dataset = JSON.parse(this.responseText);}
+
+//make descriptions
+var descriptions = {};
+descriptions.webpage = "Back Story: An alien visited Earth.  World leaders personally asked me to create a web page that quickly familiarizes the alien with \"Human Food\".  They also said it was OK to submit the web page as my final project for CS590V.  This is that web page.<br>First thing, I scraped 17,260 recipes from <a style='color: inherit;' target='_blank' href='http://allrecipes.com/'>allrecipes.com</a>.  From each recipe, I recorded the recipe's name, rating, and list of ingredients.<br>I forgot to record the URL of the recipes, which would have allowed me to include a link to the original recipe, as well as a picture.  Too bad.  I was assured that this was not the end of the world.<br>The list of ingredients taken directly from a recipe is not very tractable, and so I reduced each recipe into a list of standard terms.<br>More precisely, each recipe is a list of 0's and 1's, which indicate whether a term is present in that recipe.  This is equivalent to a subset of the terms.<br>So, where did we get these terms?  We simply counted the term frequencies for all terms (except terms like 'and', 'the', 'etc'), and picked the 200 most frequent terms.  Some terms, such as 'lean' or 'crust' aren't actually ingredients per se, though were included because they provide interesting information.<br><br>In summary, each recipe contains a name, rating, list of ingredients taken as-is from the recipe, and a subset of the 200 standard terms.  The dataset used is a collection of 17,260 of these recipes.";
+descriptions.heatmap = "This is a symmetric heatmap, where the intensity of red of each cell is proportional to the cooccurence of the two ingredients.<br>Formally, the intensity of the <i>(i, j)</i> cell is proportional to the cooccurrence of the <i>(i</i> and <i>j)</i> ingredients.<br>The cooccurrence is measured as max(P(i|j), P(j|i)).  This is calculated as the number of recipes which contain both i and j, divided by the minimum of (the number of recipes which contain i) and (the number of recipes which contain j).<br>For example, if almost all recipes that contain yeast also contain flour, the cooccurrence would be close to 1, even if few recipes that contain flour also contain yeast.<br>The cooccurrence would be '1' for the diagonals, however, because this is not very informative, it was made to be the percentage of recipes that contain that ingredient.<br><br>By hovering over a cell, you can see the name of the respective ingredients and their cooccurrence.";
+descriptions.word_cloud = "On the left is a word cloud, where the size of each term is proportional to the number of recipes which contain it.<br>By clicking on a term, you will add it to the <b>Conjunction Pool</b>.  The Conjunction Pool is used as a filter.<br>The set of recipes used to calculate the word cloud size are those which contain all the ingredients in the Conjunction Pool.  Thus, the size of each term is proportional to the conditional probability of that term given the conjunction.<br>When a term is added to the Conjunction Pool it is also added to the <b>Remove Pool</b>, since it is implied that it will be in all the recipes.<br>By adding a term to the Remove Pool, the term is simply removed from the word cloud, where it may have been obstructive.  It can be returned by removing it from the Remove Pool.<br>A term can also be added to the Remove Pool by hitting the 'Remove Terms' toggle and clicking on that term in the word cloud.";
+descriptions.radviz = "This is a <a style='color: inherit;' target='_blank' href='http://ieeexplore.ieee.org/document/4658161/'>Radviz visualization</a> which shows some of the recipes which contain all the ingredients in the <a style='color: inherit;' href='#word_cloud_description'>word cloud Conjunction Pool</a>.<br>The points in this visualization are color-coded by rating, from purple (low rating) to yellow (high rating).  Recipes without any rating are black.<br>By hovering over a point, you can learn more about that recipe, including it's name, rating, and ingredients.<br>The list of <b>Recognized terms</b> has the terms which a recipe was tagged with containing.<br>The list of <b>All ingredients</b> is the list of ingredients taken directly from the recipe's instructions.";
+</script>
+
+<center>
+<br>
+<div class="mdl-card__supporting-text mdl-card mdl-shadow--3dp" style="width: 95%; min-height: 0; text-align: left;"><div id="webpage_description"></div></div>
+<script>
+var webpage_desc_on = "<button class='mdl-chip mdl-button--colored mdl-chip mdl-chip--contact' onclick='toggle_webpage_desc()'><span class='mdl-chip__contact mdl-color--brown-500 mdl-color-text--white material-icons'>keyboard_arrow_up</span><span class='mdl-chip__text'>Hide Page Description</span></button><br>";
+webpage_desc_on += descriptions.webpage;
+var webpage_desc_off = "<button class='mdl-chip mdl-button--colored mdl-chip mdl-chip--contact' onclick='toggle_webpage_desc()'><span class='mdl-chip__contact mdl-color--brown-500 mdl-color-text--white material-icons'>keyboard_arrow_down</span><span class='mdl-chip__text'>Show Page Description</span></button>";
+
+var showing_webpage_desc = false;
+function toggle_webpage_desc(){
+	if(showing_webpage_desc){document.getElementById("webpage_description").innerHTML = webpage_desc_off;}
+	else{document.getElementById("webpage_description").innerHTML = webpage_desc_on;}
+	showing_webpage_desc = !showing_webpage_desc;
+}
+toggle_webpage_desc();
+</script>
+
+<hr>
+
+<div class="mdl-card__supporting-text mdl-card mdl-shadow--3dp" style="width: 95%; min-height: 0; text-align: left;"><div id="heatmap_description"></div></div>
+<script>
+var heatmap_desc_on = "<button class='mdl-chip mdl-button--colored mdl-chip mdl-chip--contact' onclick='toggle_heatmap_desc()'><span class='mdl-chip__contact mdl-color--green-500 mdl-color-text--white material-icons'>keyboard_arrow_up</span><span class='mdl-chip__text'>Hide Description</span></button><br>";
+heatmap_desc_on += descriptions.heatmap;
+var heatmap_desc_off = "<button class='mdl-chip mdl-button--colored mdl-chip mdl-chip--contact' onclick='toggle_heatmap_desc()'><span class='mdl-chip__contact mdl-color--green-500 mdl-color-text--white material-icons'>keyboard_arrow_down</span><span class='mdl-chip__text'>Show Description</span></button>";
+
+var showing_heatmap_desc = false;
+function toggle_heatmap_desc(){
+	if(showing_heatmap_desc){document.getElementById("heatmap_description").innerHTML = heatmap_desc_off;}
+	else{document.getElementById("heatmap_description").innerHTML = heatmap_desc_on;}
+	showing_heatmap_desc = !showing_heatmap_desc;
+}
+toggle_heatmap_desc();
+</script>
+<div id="heatmap_div"></div>
+</center>
+<br><hr>
+
+<center>
+<div class="mdl-card__supporting-text mdl-card mdl-shadow--3dp" style="width: 95%; min-height: 0; text-align: left;"><div id="word_cloud_description"></div></div>
+<script>
+var word_cloud_desc_on = "<button class='mdl-chip mdl-button--colored mdl-chip mdl-chip--contact' onclick='toggle_word_cloud_desc()'><span class='mdl-chip__contact mdl-color--teal-500 mdl-color-text--white material-icons'>keyboard_arrow_up</span><span class='mdl-chip__text'>Hide Description</span></button><br>";
+word_cloud_desc_on += descriptions.word_cloud;
+var word_cloud_desc_off = "<button class='mdl-chip mdl-button--colored mdl-chip mdl-chip--contact' onclick='toggle_word_cloud_desc()'><span class='mdl-chip__contact mdl-color--teal-500 mdl-color-text--white material-icons'>keyboard_arrow_down</span><span class='mdl-chip__text'>Show Description</span></button>";
+
+var showing_word_cloud_desc = false;
+function toggle_word_cloud_desc(){
+	if(showing_word_cloud_desc){document.getElementById("word_cloud_description").innerHTML = word_cloud_desc_off;}
+	else{document.getElementById("word_cloud_description").innerHTML = word_cloud_desc_on;}
+	showing_word_cloud_desc = !showing_word_cloud_desc;
+}
+toggle_word_cloud_desc();
+</script>
+</center>
+<br>
+<table><tr>
+<td valign="top">
+<div id="word_cloud_container">Word Cloud</div></td>
+<td valign="top">
+	<label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="remove-switch">
+		<input type="checkbox" id="remove-switch" class="mdl-switch__input" onchange="currently_removing_terms = !currently_removing_terms;">
+		<span class="mdl-switch__label">Remove Terms</span>
+	</label>
+	<br><br>
+	<b>Conjunction Pool:</b><br>
+	<div id="word_cloud_probe"></div>
+	<hr>
+	<b>Remove Pool:</b><br>
+	<div id="words_removed"></div>
+</td>
+</tr></table>
+<br>
+<hr>
+
+<center>
+<div class="mdl-card__supporting-text mdl-card mdl-shadow--3dp" style="width: 95%; min-height: 0; text-align: left;"><div id="radviz_description"></div></div>
+<script>
+var radviz_desc_on = "<button class='mdl-chip mdl-button--colored mdl-chip mdl-chip--contact' onclick='toggle_radviz_desc()'><span class='mdl-chip__contact mdl-color--indigo-500 mdl-color-text--white material-icons'>keyboard_arrow_up</span><span class='mdl-chip__text'>Hide Description</span></button><br>";
+radviz_desc_on += descriptions.radviz;
+var radviz_desc_off = "<button class='mdl-chip mdl-button--colored mdl-chip mdl-chip--contact' onclick='toggle_radviz_desc()'><span class='mdl-chip__contact mdl-color--indigo-500 mdl-color-text--white material-icons'>keyboard_arrow_down</span><span class='mdl-chip__text'>Show Description</span></button>";
+
+var showing_radviz_desc = false;
+function toggle_radviz_desc(){
+	if(showing_radviz_desc){document.getElementById("radviz_description").innerHTML = radviz_desc_off;}
+	else{document.getElementById("radviz_description").innerHTML = radviz_desc_on;}
+	showing_radviz_desc = !showing_radviz_desc;
+}
+toggle_radviz_desc();
+</script>
+</center>
+
+<table style="min-height: 100%;"><tr>
+<td valign="top">
+<div id="radviz_container" id="radviz_probe">Radviz</div>
+<br>
+<center>
+<svg height=15>
+<defs>
+	<linearGradient id="rad_grad" x1="0%" y1="0%" x2="100%" y2="0%">
+    	<stop offset="0%" style="stop-color:purple;stop-opacity:1" />
+    	<stop offset="100%" style="stop-color:yellow;stop-opacity:1" />
+	</linearGradient>
+</defs>
+<rect fill='url(#rad_grad)' style='x: 25%; stroke: black; stroke-width: 1; width:50%; height:100%;'></rect>
+</svg>
+<br>
+2-5 stars (Rating)
+</center>
+</td>
+<td id="radviz_probe" valign="top"></td>
+</tr></table>
+</body>
+
+<script src="deps/scripts/d3.v3.min.js"></script>
+<script src="deps/scripts/radviz-min.js"></script>
+<script src="deps/scripts/d3.tip.v0.6.3.js"></script>
+<script src="deps/scripts/d3-cloud/build/d3.layout.cloud.js"></script>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+
+<script> // WORD CLOUD
+var word_cloud_size = [500, 500];
+
+function sum_rows(must_include){
+	var table = dataset["indicator-table"];
+	var width = table[0].length;
+	var should_sum_index = [];
+	var sums = [];
+	for(i=0;i<width;i++){
+		sums.push(0);
+		should_sum_index[i] = (-1 == globally_removed_terms.indexOf(dataset["all-terms"][i]));
+	}
+	for(i=0;i<table.length;i++){
+		use_row = true;
+		word_cloud_conjunction.map(function(j){
+			if(0 == dataset["indicator-table"][i][term_to_index[j]]){use_row = false;}});
+		if(!use_row){continue;}
+		for(j=0;j<width;j++){
+			if(!should_sum_index[j]){continue;}
+			sums[j] += table[i][j];
+		}
+	}
+	return sums;
+}
+
+function make_word_cloud_words(){
+	// where X is a term, and Y is the conjunction of terms
+	//P(X|Y)=P(Y|X)P(X)/P(Y)
+	// == (|y and x| / |x|) * |x| / |y|
+	// == |y and x| / |y|
+	// because |y| is constant, |y and x| is proportional to P(X|Y)
+	// thus, we can simply count the intersection of x (recipes with our term) and y (recipes with our conjunction)
+	terms = dataset["all-terms"];
+	freqs = sum_rows();
+	ratio = 60 / Math.max(...freqs);
+	words = [];
+	for(i=0;i<terms.length;i++){
+		words.push({text: terms[i], size: Math.ceil(freqs[i] * ratio)});
+	}
+	return words.filter(word => (word.size > 0));
+	//return words.filter(word => (-1 == globally_removed_terms.indexOf(word.text)));
+}
+
+var cloud = d3.layout.cloud;
+var fill = d3.scale.category20();
+var word_cloud_last_font_size = null;
+
+function helper_draw_word_cloud(layout, words) {
+  d3.select("#word_cloud_container")
+  	.append("svg")
+    .attr("width", layout.size()[0])
+    .attr("height", layout.size()[1])
+    .append("g")
+    .attr("transform", "translate(" + layout.size()[0] / 2 + "," + layout.size()[1] / 2 + ")")
+    .selectAll("text")
+    .data(words)
+    .enter().append("text")
+    .style("font-size", function(d) { return d.size + "px"; })
+    .style("font-family", "Impact")
+    .style("cursor", "pointer")
+    .style("fill", function(d, i) { return fill(i); })
+    .attr("text-anchor", "middle")
+    .attr("transform", function(d) { return "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")"; })
+    .attr("onclick", "clicked_word_cloud(this.innerHTML);")
+    //.attr("onmouseover", "word_cloud_last_font_size = this.style['font-size']; this.style['font-size']='50px';")
+    //.attr("onmouseout", "this.style['font-size'] = word_cloud_last_font_size;")
+    .attr("onmouseover", "this.style['textShadow'] = '1px 1px black';")
+    .attr("onmouseout", "this.style['textShadow'] = '';")
+    .text(function(d) { return d.text; });
+}
+
+var globally_removed_terms = [];
+
+function draw_word_cloud(){
+	var word_cloud_words = make_word_cloud_words();
+	var html_element = document.getElementById("word_cloud_container");
+	html_element.innerHTML = "";
+	var layout = cloud()
+    	.size(word_cloud_size)
+    	.words(word_cloud_words)
+    	.padding(2)
+    	.rotate(0)//function() { return ((Math.random() < 0.8)? 0 : -90); })
+    	.font("Impact")
+    	.fontSize(function(d) { return d.size; })
+    	.on("end", (function(words){helper_draw_word_cloud(layout, words)}));
+	layout.start();
+}
+
+var currently_removing_terms = false;
+
+var term_to_index = {};
+for(i in dataset["all-terms"]){
+	term_to_index[dataset["all-terms"][i]] = i;
+}
+
+function clicked_word_cloud(term){
+	if(currently_removing_terms){
+		remove_term(term);
+	}
+	else{
+		add_word_cloud_conjunct(term);
+	}
+}
+
+
+function remove_term(term){
+	if(globally_removed_terms.indexOf(term) != -1){ return; } // already has term
+	globally_removed_terms.push(term);
+	draw_terms_removed();
+}
+
+function remove_term_removal(term){
+	var idx = globally_removed_terms.indexOf(term);
+	if(idx == -1){ return; } // already does not have term
+	globally_removed_terms.splice(idx, 1);
+	draw_terms_removed();
+}
+
+function draw_terms_removed(){
+	var ele = document.getElementById("words_removed");
+	ele.innerHTML = "";
+	globally_removed_terms.map(function(term){
+		ele.innerHTML += '<span class="mdl-chip mdl-chip--deletable"> <span class="mdl-chip__text">' + term + '</span> <button type="button" class="mdl-chip__action" onclick="remove_term_removal(\'' + term + '\')"><i class="material-icons">cancel</i></button> </span>';
+	});
+	draw_word_cloud();
+}
+
+var word_cloud_conjunction = [];
+
+function add_word_cloud_conjunct(term){
+	if(word_cloud_conjunction.indexOf(term) != -1){ return; } // already has term
+	word_cloud_conjunction.push(term);
+	draw_word_cloud_conjunction();
+	remove_term(term);
+}
+
+function delete_word_cloud_conjunct(term){
+	var idx = word_cloud_conjunction.indexOf(term);
+	if(idx == -1){ return; } // didn't have term
+	word_cloud_conjunction.splice(idx, 1);
+	draw_word_cloud_conjunction();
+	remove_term_removal(term);
+}
+
+function draw_word_cloud_conjunction(){
+	var ele = document.getElementById("word_cloud_probe");
+	ele.innerHTML = "";
+	word_cloud_conjunction.map(function(term){
+		ele.innerHTML += '<span class="mdl-chip mdl-chip--deletable"> <span class="mdl-chip__text">' + term + '</span> <button type="button" class="mdl-chip__action" onclick="delete_word_cloud_conjunct(\'' + term + '\')"><i class="material-icons">cancel</i></button> </span>';
+	});
+	draw_word_cloud();
+	update_sampled_recipes();
+	draw_radviz();
+}
+</script>
+
+<script> // Radviz
+var n_datums_for_radviz = 1000;
+
+function random_subset(max_int, n){
+	var s = new Set();
+	while(s.size < n){
+		s.add(Math.floor(Math.random() * max_int));
+	} 
+	return Array.from(s);
+}
+
+var orig_sample_recipes_indices = random_subset(dataset["indicator-table"].length, n_datums_for_radviz);
+var sampled_recipes = [];
+orig_sample_recipes_indices.map(function(i){
+	function make_recipe(){
+		var r = {};
+		for(j=0;j<dataset["all-terms"].length;j++){
+			r[dataset["all-terms"][j]] = dataset["indicator-table"][i][j];
+		}
+		r["recipe index"] = i;
+		return r;
+	}
+	sampled_recipes.push(make_recipe());
+});
+
+function make_recipe_indicator_vector(i){
+	var r = {};
+	for(j=0;j<dataset["all-terms"].length;j++){
+		r[dataset["all-terms"][j]] = dataset["indicator-table"][i][j];
+	}
+	r["recipe index"] = i;
+	return r;
+}
+
+function update_sampled_recipes(){
+	sampled_recipes = [];
+	if(word_cloud_conjunction == []){
+		orig_sample_recipes_indices.map(function(i){sampled_recipes.push(make_recipe_indicator_vector(i));});
+		return;
+	}
+	random_subset(dataset["indicator-table"].length, dataset["indicator-table"].length).map(function(i){
+		if(sampled_recipes.length == n_datums_for_radviz){return;}
+		var use_row = true;
+		word_cloud_conjunction.map(function(x){
+			if(0 == dataset["indicator-table"][i][term_to_index[x]]){use_row = false;}});
+		if(use_row){
+			sampled_recipes.push(make_recipe_indicator_vector(i));
+		}
+	});
+	return;
+}
+
+var orig_radviz_colorScale = d3.scale.linear().domain([2, 5]).range(["purple", "yellow"]);
+function radviz_colorScale(n){
+	if(n==0){return "#000000";}
+	return orig_radviz_colorScale(n);
+}
+
+var radviz_ordered_dimensions = [];
+var radviz_evolved_ordering = [174, 21, 115, 27, 148, 190, 114, 126, 133, 195, 105, 110, 20, 40, 5, 137, 14, 22, 128, 132, 140, 29, 92, 123, 23, 158, 160, 131, 108, 97, 95, 9, 103, 11, 134, 54, 98, 30, 181, 111, 147, 113, 80, 87, 144, 171, 2, 187, 172, 70, 173, 119, 99, 125, 34, 112, 66, 75, 10, 102, 120, 129, 150, 142, 188, 175, 38, 122, 169, 106, 104, 63, 42, 24, 179, 35, 191, 154, 59, 194, 199, 49, 48, 176, 117, 177, 12, 45, 139, 32, 146, 7, 162, 1, 96, 17, 130, 0, 101, 76, 124, 64, 170, 19, 91, 25, 16, 60, 61, 77, 189, 13, 62, 58, 149, 50, 163, 71, 6, 186, 145, 47, 138, 4, 68, 118, 183, 72, 136, 168, 192, 156, 73, 26, 83, 33, 28, 197, 53, 82, 121, 157, 79, 90, 46, 153, 31, 155, 166, 88, 43, 74, 18, 178, 44, 93, 185, 180, 56, 196, 161, 100, 164, 135, 52, 184, 81, 109, 37, 3, 159, 84, 89, 39, 15, 107, 36, 57, 78, 198, 65, 141, 151, 193, 41, 165, 152, 143, 8, 182, 116, 55, 85, 69, 167, 67, 51, 94, 86, 127]
+radviz_evolved_ordering.map(i => radviz_ordered_dimensions.push(dataset["all-terms"][i]));
+
+function draw_radviz(){
+	document.getElementById("radviz_container").innerHTML = "";
+	document.getElementById("radviz_probe").innerHTML = "";
+	var dimensions = radviz_ordered_dimensions;
+    var radviz = radvizComponent()
+        .config({
+            el: document.getElementById("radviz_container"),
+            dimensions: dimensions,
+            dotRadius: 1.5,
+            colorScale: radviz_colorScale,
+            colorAccessor: function(d) {return +dataset["recipes"][d["recipe index"]].rating;},
+            size: 500,
+            margin: 50,
+            useRepulsion: false,
+            drawLinks: false,
+            useTooltip: false
+			})
+		.on('dotEnter', function(d) {remove_highlight_active(); probe_datum(d); setTimeout(highlight_active, 10);});
+	radviz.render(sampled_recipes);
+	document.getElementById("radviz_container").children[0].children[0].style.fill = "#f5f5f5"
+}
+
+var last_active = null;
+function remove_highlight_active(){
+	if(last_active != null){
+		last_active.innerHTML="";
+		last_active.r.baseVal.value = 1.5;
+	}
+}
+
+function highlight_active(){
+	remove_highlight_active();
+	last_active = document.querySelector(".active");
+	if(last_active != null){
+		last_active.innerHTML="<animate attributeType='XML' attributeName='opacity' values='0.5;1;0.5' dur='0.5s' repeatCount='indefinite'></animate>";
+		last_active.r.baseVal.value = 7;
+	}
+	if(last_active == null){
+		document.getElementById("radviz_probe").innerHTML="";
+	}
+}
+
+function probe_datum(datum){
+	var recipe = dataset["recipes"][datum["recipe index"]];
+	ele = document.getElementById("radviz_probe");
+	ele.innerHTML = "<h3 style='margin-bottom: 0px;'>" + recipe.name + "</h3>";
+	//ele.innerHTML += "<br>";
+	var stars = String.fromCharCode(9733) + String.fromCharCode(9733) + String.fromCharCode(9733) + String.fromCharCode(9733) + String.fromCharCode(9733);
+	//ele.innerHTML += "<table><tr><td>";
+	if(recipe.rating == 0){ele.innerHTML += "<table><tr><td><span style='font-size: 0.5em; font-weight: 600;'>No Rating</span>";}
+	else{ele.innerHTML += "<table><tr><td><span style='font-size: 0.5em; font-weight: 600;'>(" + recipe.rating.toPrecision(3) + " / 5) Stars</span>";}
+	//ele.innerHTML += "</td><td>"
+	ele.innerHTML += "</td><td><span style='color: gold; font-size: 1em; overflow: hidden; position: absolute; width: " + recipe.rating + "em;'>" + stars + "</span></td></tr></table>";
+	//ele.innerHTML += "</td></tr></table>";
+	ele.innerHTML += "<br><br>";
+	//ele.innerHTML += "<span style='font-size: 0.5em; font-weight: 600; width:20em; margin-right: 10em;'>Recognized terms:</span><span style='font-size: 0.5em; font-weight: 600; width:20%;'>All ingredients:</span>";
+	//ele.innerHTML += "<br>";
+	ele.innerHTML += "<ul style='width:10em;'><span style='font-weight: 600; margin-left: -40px;'>Recognized terms:</span> " + recipe.terms.map(function(s){return "<li>" + s + "</li>";}).join("") + "</ul>";
+	var raw = recipe["raw-ingredients"].substring(2);
+	raw = raw.substring(0, raw.length - 2);
+	raw = raw.split('" "').map(function(s){return "<li>" + s + "</li>";}).join("");
+	ele.innerHTML += "<ul style='max-width: 30%; padding-left: 4em;'><span style='font-weight: 600; margin-left: -40px;'>All ingredients:</span>" + raw + "</ul></div>";
+}
+</script>
+
+<script type='text/javascript'>
+function draw_heatmap(){
+  var ordering = [174, 21, 115, 27, 148, 190, 114, 126, 133, 195, 105, 110, 20, 40, 5, 137, 14, 22, 128, 132, 140, 29, 92, 123, 23, 158, 160, 131, 108, 97, 95, 9, 103, 11, 134, 54, 98, 30, 181, 111, 147, 113, 80, 87, 144, 171, 2, 187, 172, 70, 173, 119, 99, 125, 34, 112, 66, 75, 10, 102, 120, 129, 150, 142, 188, 175, 38, 122, 169, 106, 104, 63, 42, 24, 179, 35, 191, 154, 59, 194, 199, 49, 48, 176, 117, 177, 12, 45, 139, 32, 146, 7, 162, 1, 96, 17, 130, 0, 101, 76, 124, 64, 170, 19, 91, 25, 16, 60, 61, 77, 189, 13, 62, 58, 149, 50, 163, 71, 6, 186, 145, 47, 138, 4, 68, 118, 183, 72, 136, 168, 192, 156, 73, 26, 83, 33, 28, 197, 53, 82, 121, 157, 79, 90, 46, 153, 31, 155, 166, 88, 43, 74, 18, 178, 44, 93, 185, 180, 56, 196, 161, 100, 164, 135, 52, 184, 81, 109, 37, 3, 159, 84, 89, 39, 15, 107, 36, 57, 78, 198, 65, 141, 151, 193, 41, 165, 152, 143, 8, 182, 116, 55, 85, 69, 167, 67, 51, 94, 86, 127];
+  var ordering_2 = ordering;
+  
+  document.getElementById("heatmap_div").innerHTML = "";
+  
+  var margin = {top: 20, right: 20, bottom: 30, left: 30},
+  	size = Math.floor(0.5 * document.body.clientWidth);
+      width = size - margin.left - margin.right,
+      height = size - margin.top - margin.bottom;
+
+  var x = d3.scale.linear()
+    .range([0, width])
+    .domain([0, 200]);
+
+  var y = d3.scale.linear()
+    .range([height, 0])
+    .domain([0, 200]);
+
+  var color = d3.scale.linear()
+    .domain([0, 1])
+    .range(['white', 'red']);
+
+  var data = [];
+  for(i=0;i<200;i++){
+  	for(j=0;j<200;j++){
+  		data.push({x: i, y: j, intensity: dataset['normalized-burt-table'][i][j]});
+  	}
+  }
+
+  var svg = d3.select("#heatmap_div").append("svg")
+  	.attr('width', width + margin.left + margin .right)
+  	.attr('height', height + margin.top + margin.bottom)
+  	.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+	var tip = d3.tip()
+    	.style("box-shadow", "1px 1px 5px rgba(0, 0, 0, 0.5)")
+    	.style("border", "1px solid grey")
+    	.style("border-radius", "5px")
+    	.style("opacity", 0)
+    	.style("background-color", "#ffffff")
+    	.style("z-index", 10)
+        .offset([-5, 0])
+        .html(function(d) {
+        	return "<table><tr><td>Terms:</td><td>" + dataset['all-terms'][d.x] + ", " + dataset['all-terms'][d.y] + "</td></tr><tr><td>Cooccurrence:</td><td>" + d.intensity + "</td></tr><tr><td colspan=100% bgcolor='"+color(d.intensity)+"'>&nbsp</td></tr></table>";
+        });
+
+  var cell_size = x(2) - x(1);
+
+  svg.selectAll('.cell')
+  	.data(data)
+  	.enter().append('rect')
+    		.attr('x', function (d) { return x(ordering[d.x]); })
+    		.attr('y', function (d) { return y(ordering_2[d.y]); })
+    		.attr('width', function (d) { return cell_size; })
+    		.attr('height', function (d) { return cell_size; })
+    		.attr('fill', function (d) { return color(d.intensity); })
+    		.on('mouseover', tip.show)
+    		.on('mouseout', tip.hide);
+    
+  var legend = svg.append("svg")
+  					.attr("width", Math.floor(width * 0.5))
+  					.attr("height", Math.floor(width * 0.02))
+  					.attr("x", width * 0.25)
+  					.attr("y", height * 1.05);
+  var gradient = legend.append("defs")
+  .append("linearGradient")
+    .attr("id", "gradient")
+    .attr("x1", "0%")
+    .attr("y1", "0%")
+    .attr("x2", "100%")
+    .attr("y2", "0%")
+    .attr("spreadMethod", "pad");
+	gradient.append("stop")
+    	.attr("offset", "0%")
+	  	.attr("stop-color", "white")
+    	.attr("stop-opacity", 1);
+	gradient.append("stop")
+   	 .attr("offset", "100%")
+   	 .attr("stop-color", "red")
+   	 .attr("stop-opacity", 1);
+
+legend.append("rect")
+    .attr("width", "100%")
+    .attr("height", "100%")
+    .style("fill", "url(#gradient)")
+    .style("stroke-width", 1)
+    .style("stroke", "black");
+
+legend.append("text")
+    .attr("x", width * 0.5)
+    .attr("y", 0)
+    .attr("dy", "0.5em")
+    .text("1");
+
+legend.append("text")
+    .attr("x", "-0.7em")
+    .attr("y", 0)
+    .attr("dy", "0.5em")
+    .text("0");
+
+legend.append("text")
+    .attr("x", width * 0.125)
+    .attr("y", "1.5em")
+    .attr("dy", ".4em")
+    .text("Cooccurrence");
+
+tip(svg.append("g"));
+}
+</script>
+
+<script>
+draw_heatmap();
+draw_word_cloud();
+draw_radviz();
+</script>
+</html>

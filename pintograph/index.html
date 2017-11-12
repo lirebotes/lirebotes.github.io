@@ -1,0 +1,190 @@
+<html>
+<head>
+<title>Pintograph</title>
+</head>
+<body>
+<span id='violation_alert' style='color: red; visibility: hidden;'>Violates Triangle Inequality! (you broke the machine)</span>
+<table>
+<tr><td><a id='url_box'>Link to settings</a></td><td><a href="#" onclick="show_points_json()">Show Path Data</a></td></tr>
+<tr>
+<td id='parameters' valign='top'></td>
+<td><svg id='pintograph_svg' style='overflow: visible;' width=800 height=800></svg></td>
+</tr>
+</table>
+</body>
+<script>
+function show_points_json(){
+	var dat = window.open("data:text/json," + JSON.stringify(all_points), "_blank");
+	dat.focus();
+	return;
+}
+
+
+function gcd(n1, n2){
+	return n2 == 0? n1 : gcd(n2, n1 % n2);
+}
+
+Number.prototype.countDecimals = function () {
+    if(Math.floor(this.valueOf()) === this.valueOf()) return 0;
+    return this.toString().split(".")[1].length || 0; 
+}
+
+function lcm(n1, n2){
+	var s = Math.pow(10, Math.max(n1.countDecimals(), n2.countDecimals()));
+	return (n1 * n2) / (gcd(Math.round(n1*s), Math.round(n2*s)) / s);
+}
+
+function circle_intersection(x1, y1, r1, x2, y2, r2){
+    var dx = x2-x1,
+    dy = y2-y1,
+    d = Math.sqrt(dx*dx+dy*dy),
+    a = (r1*r1-r2*r2+d*d)/(2*d),
+    h = Math.sqrt(r1*r1-a*a),
+    xm = x1 + (a*dx / d),
+    ym = y1 + (a*dy / d);
+    return [xm + (h*dy/d), ym + (h*dx/d)]; // this is a variant I made up
+    //return [xm - (h*dy/d), ym + (h*dx/d)]; // this is the true pintograph function
+}
+
+function make_pintograph(settings, new_point_fn){
+	var inc1 = 2 * Math.PI / (settings["path resolution"] * settings["flywheel 1 period"]),
+    inc2 = 2 * Math.PI / (settings["path resolution"] * settings["flywheel 2 period"]),
+    n_iterations = (1 + (settings["path resolution"] * Math.ceil(lcm(settings["flywheel 1 period"], settings["flywheel 2 period"]))));
+    n_iterations = Math.min(n_iterations, settings["maximum iterations"]);
+	for(var i=0; i<n_iterations; i++){
+		var theta_1 = i * inc1,
+		theta_2 = i * inc2,
+		c1x = Math.cos(theta_1) * settings["flywheel 1 radius"],
+		c1y = Math.sin(theta_1) * settings["flywheel 1 radius"],
+		c2x = (Math.cos(theta_2) * settings["flywheel 2 radius"]) + settings["distance between flywheels"],
+		c2y = Math.sin(theta_2) * settings["flywheel 2 radius"],
+		effector = circle_intersection(c1x, c1y, settings["arm 1 length"], c2x, c2y, settings["arm 2 length"]);
+		new_point_fn(effector, settings);
+	}
+	return;
+}
+
+
+var last_point = null,
+all_points = [],
+pintograph_svg = document.getElementById('pintograph_svg');
+
+function new_point(point, settings){
+	if(last_point != null){
+		var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+		line.setAttribute('x1', transx(last_point[0]));
+		line.setAttribute('y1', transy(last_point[1]));
+		line.setAttribute('x2', transx(point[0]));
+		line.setAttribute('y2', transy(point[1]));
+		line.setAttribute('stroke', 'black');
+		line.setAttribute('stroke-width', '1px');
+		pintograph_svg.append(line);
+	}
+	last_point = point;
+	all_points.push(point);
+	return;
+}
+
+SETTINGS = {
+    "distance between flywheels": 1,
+    "arm 1 length": 1,
+    "arm 2 length": 1,
+    "flywheel 1 radius": 0.2,
+    "flywheel 2 radius": 0.2,
+    "flywheel 1 period": 1,
+    "flywheel 2 period": 1,
+    "path resolution": 100,
+    "maximum iterations": 5e4,
+    "scaling": 300
+}
+
+function illegal_settings(settings){
+	var a = settings["distance between flywheels"] + settings["flywheel 1 radius"] + settings["flywheel 2 radius"],
+	b = settings["arm 1 length"],
+	c = settings["arm 2 length"];
+	if(a >= (b+c) || b >= (a+c) || c >= (a+b)){return true;}
+	var a = settings["distance between flywheels"] - settings["flywheel 1 radius"] - settings["flywheel 2 radius"],
+	b = settings["arm 1 length"],
+	c = settings["arm 2 length"];
+	if(a >= (b+c) || b >= (a+c) || c >= (a+b)){return true;}
+	return false;
+}
+
+var last_SETTINGS = [SETTINGS];
+function update_pintograph(){
+	var if_illegal_revert_back_n_times = 5;
+	if(illegal_settings(SETTINGS)){
+		document.getElementById('violation_alert').style.visibility = 'visible';
+		console.log("Violates triangle inequality.");
+		Object.keys(SETTINGS).map(function(key){
+			var ele = document.getElementsByName(escape(key))[0];
+			ele.disabled = true;
+			ele.value = last_SETTINGS[0][key];
+			ele.disabled = false;
+		});
+		return;
+	}
+	else{
+		document.getElementById('violation_alert').style.visibility = 'hidden';
+		last_SETTINGS.push(SETTINGS);
+		last_SETTINGS = last_SETTINGS.splice(Math.max(last_SETTINGS.length - if_illegal_revert_back_n_times, 0));
+	}
+	while(pintograph_svg.lastChild){pintograph_svg.removeChild(pintograph_svg.lastChild);}
+	last_point = null;
+	all_points = [];
+	xmin = Math.min(- SETTINGS["flywheel 1 radius"], SETTINGS["distance between flywheels"] - SETTINGS["flywheel 2 radius"]),
+	xmax = Math.max(SETTINGS["flywheel 1 radius"], SETTINGS["distance between flywheels"] + SETTINGS["flywheel 2 radius"]),
+	ymax = Math.max(SETTINGS["flywheel 1 radius"] + SETTINGS["arm 1 length"], SETTINGS["flywheel 2 radius"] + SETTINGS["arm 2 length"]),
+	ymin = 0,
+	transx = function(x){return (SETTINGS["scaling"] / xmax) * (x - xmin);},
+	transy = function(y){return (SETTINGS["scaling"] / ymax) * (y - ymin);};
+	make_pintograph(SETTINGS, new_point);
+	document.getElementById('url_box').href = serializeURL();
+	return;
+}
+
+function make_table(settings){
+	var table = "<table>";
+	Object.keys(settings).map(function(key){
+		var row = "<tr><td>" + key + "</td><td>";
+		row += '<input type="range" name='+ escape(key) +' min="'+ String(0.01 * settings[key]) +'" max="'+ String(5 * settings[key]);
+		row += '" value="'+ settings[key] +'" step="'+ String(settings[key] / 10);
+		row += '" oninput="SETTINGS[\''+key+'\']=parseFloat(this.value); update_pintograph();" /></td></tr>';
+		table += row;
+	});
+	table += "</table>";
+	return table;
+}
+
+
+
+
+// URL state
+function serializeURL(){
+  var str = [];
+  for(var p in SETTINGS)
+    if (SETTINGS.hasOwnProperty(p)) {str.push(encodeURIComponent(p) + "=" + encodeURIComponent(SETTINGS[p]));}
+  return document.location.href.split("?")[0] + "?" + str.join("&");
+}
+
+function deserializeURL(){
+  var url_str = document.location.href.split('?')[1],
+  pairs = url_str.split('&'),
+  result = {};
+  pairs.forEach(function(pair) {
+    pair = pair.split('=');
+    result[pair[0].split("%20").join(" ")] = parseFloat(decodeURIComponent(pair[1]));
+  });
+  return result;
+}
+
+try{SETTINGS = deserializeURL();}
+catch(e){}
+
+
+
+update_pintograph();
+document.getElementById('parameters').innerHTML += make_table(SETTINGS);
+</script>
+</html>
+
