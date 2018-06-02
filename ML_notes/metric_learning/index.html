@@ -66,7 +66,7 @@ Although the function d is still a metric, it isn't so useful; distances are mea
 Therefore, in order to refine the metric d, we must meaningfully place photos on the table using the function f. 
 We can parameterize the function f using parameters w, so that the table coordinates for a photo x is f(x,w), and the distance function is then d(a,b,w) = euclidean(f(a,w), f(b,w)). An illustration from 
 <a href='https://papers.nips.cc/paper/769-signature-verification-using-a-siamese-time-delay-neural-network.pdf'>the original paper</a> is found below:
-<center><img src='siamese.png'></img></center>
+<center>![](siamese.png)</center>
 
 Alright, it's learning time! Let's improve the performance of the metric, d, by adjusting its parameters w. 
 We'll say that the metric performs well when similar things are close together and dissimilar things are further apart.
@@ -107,7 +107,7 @@ I've implemented an example using pictures of digits from the MNIST dataset, in 
 Below is an animation of the the latent space during training. 
 Note that we are using (unseen) validation data.
 Points with the same color are of the same digit.
-<center><img src='metric_learning.gif'></img></center>
+<center>![](metric_learning.gif)</center>
 
 ---
 If you want to learn more, check out

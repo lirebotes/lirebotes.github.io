@@ -1,0 +1,69 @@
+<script src='../../util/main.js'></script>
+<body style='width: 60%;margin-left:auto;margin-right:auto;font-size: 18;font-family: monospace;'>
+<center>
+<div id='canvas_holder'></div>
+<br>
+<table>
+	<tr>
+		<td>Refresh Rate:</td>
+		<td>
+			<input type="range" min="0" max="1" step="0.01" value="0.2" oninput="make_interval(Math.round(-1000*(this.value-1)));">
+		</td>
+	</tr>
+	<tr>
+		<td>Discount Factor:</td>
+		<td>
+			<input type="range" min="0.9" max="0.999" step="0.001" value="0.99" oninput="window.grid.gamma = this.value;">
+		</td>
+	</tr>
+	<tr>
+		<td>Forget what was learned:</td>
+		<td align=center>
+			<button onclick="window.grid.value.populate_vals();">Summer Vacation!</button>
+		</td>
+	</tr>
+</table>
+</center>
+<markdown>
+Above you're seeing a <a href="http://artint.info/html/ArtInt_227.html">Value Iteration</a> algorithm solve a maze/"Grid World" problem. 
+The color of each cell represents the payoff it provides. 
+The explorer is rewarded for green cells and punished for red cells, the darker the color, the stronger the payoff. 
+You'll also see arrows that indicate the explorer's "policy", which is the decision it makes in each cell.
+
+Value Iteration, and other Reinforcement Learning algorithms, are intended to solve non-deterministic problems that fall under the framework of <a href="https://en.wikipedia.org/wiki/Markov_decision_process">MDPs</a> (Markov decision processes).
+However, for the sake of simplicity, I made the problem *deterministic* (not random), meaning that an action in a cell will always lead to the same result.
+This really isn't an issue because deterministic problems are just a special case of a non-deterministic problems, where each probability is either 0% or 100%.
+
+One of my goals was to visualize how the expected rewards propagate, or flow, through the model. 
+With enough slider-sliding, you should be able to observe that the policy *cascades*. 
+Hailing from NYC, it kinda reminds me of a chain reaction you'd see in a large crowd, as if something valuable (or repulsive) was discovered. 
+I wanted to show an analogy here, but I couldn't find any satisfying gifs of crowd simulations or ant colonies.
+</markdown>
+</body>
+
+
+
+<script type='module'>
+import {make_grid} from './grid.js'
+
+const PARAMS = {
+	grid_size: [20,20],
+	width: 500
+}
+
+window.grid = new make_grid(PARAMS)
+document.getElementById("canvas_holder").appendChild(grid.paint.canvas)
+
+
+function update(){
+	grid.value.iteration();
+	grid.paint.draw_value(grid)
+}
+window.interval = null
+window.make_interval = speed => {
+	console.log(speed)
+	clearInterval(window.interval)
+	window.interval = setInterval(update, speed)
+}
+make_interval(200)
+</script>
