@@ -1,0 +1,11 @@
+body {
+	width: 60%;
+	margin-left: auto;
+	margin-right: auto;
+	font-size: 18;
+	font-family: monospace;
+}
+
+a:visited{
+  color: blue;
+}

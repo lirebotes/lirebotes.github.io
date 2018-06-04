@@ -8,4 +8,9 @@ window.addEventListener("load", () => {
 		.forEach(target => {
 			target.innerHTML = converter.makeHtml(target.innerHTML)
 		})
+
+	Array.from(document.getElementsByTagName('a'))
+		.filter(e => e.origin != window.location.origin)
+		.forEach(e => e.setAttribute('target', '_blank'))
+
 })

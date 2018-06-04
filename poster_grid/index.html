@@ -1,6 +1,10 @@
+<link rel="stylesheet" type="text/css" href="../util/main.css">
+<script src='../util/main.js'></script>
+
 <script src="circles.js"></script>
 <script src="rectangles.js"></script>
 <script src="polygons.js"></script>
+
 <style>
 .container {
   width: 100%;
@@ -10,14 +14,18 @@
 }
 </style>
 
+
+<body style='width: 100%;'>
+
 <div class='container'>
 	<div id='circles'></div>
 	<div id='rectangles'></div>
 	<div id='polygons'></div>		
 </div>
 
-<div class='container'>
-<table>
+<br>
+
+<center><table>
 	<tr>
 		<td>Grid Size:</td>
 		<td>
@@ -30,24 +38,48 @@
 			<input type='range' value=0 min=0 max=10 step=0.0001 oninput='seed=this.value;draw();'>
 		</td>
 	</tr>
-</table>
-</div>
+
+	<tr><td><br><br>Functions:</td></tr>
+
+	<tr>
+		<td colspan='2'>
+		<input type="radio" name="color" onclick="random = () => Math.abs(Math.sin(seed++));draw();">
+		<a href="http://www.wolframalpha.com/input/?i=abs(sin(x))">abs(sin(x))</a>
+		</td>
+	</tr>
+	<tr>
+		<td colspan='2'>
+		<input type="radio" name="color"  onclick="random = () => Math.pow(Math.sin(seed++),2);draw();" checked>
+		<a href="http://www.wolframalpha.com/input/?i=sin%C2%B2(x)">sin²(x)</a> = 1/2 (1 - cos(2x))
+		</td>
+	</tr>
+	<tr>
+		<td colspan='2'>
+		<input type="radio" name="color" onclick="random = () => {seed++;return Math.sin(1e8*seed) - Math.floor(Math.sin(1e8*seed));};draw();">
+		<a href="http://www.wolframalpha.com/input/?i=sin(100000000x)+-+floor(sin(100000000x))">
+		sin(100000000x) - floor(sin(100000000x))
+		</a>
+		</td>
+	</tr>
+</table></center>
+
+</body>
 
 <script>
 var grid_size = 3;
 var seed = 0;
 
-var circles = document.getElementById('circles'),
-rectangles = document.getElementById('rectangles'),
-polygons = document.getElementById('polygons');
-
 function random(){
 	/*var x = Math.sin(seed++) * 10000;
     return x - Math.floor(x);*/
    	var x = seed++;
-   	return Math.abs(Math.sin(x));
-	return Math.abs((5*Math.sin(0.02*x) + 15*Math.sin(0.1*x+11) + 1*Math.sin(2*x) + 2*Math.sin(2*x) + 1*Math.sin(2.2*x)) / 24);
+   	return Math.pow(Math.sin(x), 2);
+	//return Math.abs((15*Math.sin(0.1*x+11) + 5*Math.sin(0.02*x) + 1*Math.sin(2*x) + 2*Math.sin(2*x) + 1*Math.sin(2.2*x)) / 24);
 }
+
+var circles = document.getElementById('circles'),
+rectangles = document.getElementById('rectangles'),
+polygons = document.getElementById('polygons');
 
 
 function draw(){
