@@ -18,7 +18,7 @@ export function paint_grid(PARAMS){
 	this.center_pos = pos => this.corner_pos(pos).map(d => d+(this.cell_size / 2))
 	this.canvas = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
 	this.canvas.style.overflow = "visible"
-	this.canvas.style.borderStyle = "solid"
+	//this.canvas.style.borderStyle = "solid"
 	this.canvas.style.height = PARAMS.width
 	this.canvas.style.width = PARAMS.width
 
