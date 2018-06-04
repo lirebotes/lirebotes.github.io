@@ -1,0 +1,63 @@
+<script src="circles.js"></script>
+<script src="rectangles.js"></script>
+<script src="polygons.js"></script>
+<style>
+.container {
+  width: 100%;
+  margin-top: 5%;
+  display: flex;
+  justify-content: space-evenly;
+}
+</style>
+
+<div class='container'>
+	<div id='circles'></div>
+	<div id='rectangles'></div>
+	<div id='polygons'></div>		
+</div>
+
+<div class='container'>
+<table>
+	<tr>
+		<td>Grid Size:</td>
+		<td>
+			<input type='range' value=3 min=1 max=15 step=1 oninput='grid_size=this.value;draw();'>
+		</td>
+	</tr>
+	<tr>
+		<td>Seed:</td>
+		<td>
+			<input type='range' value=0 min=0 max=10 step=0.0001 oninput='seed=this.value;draw();'>
+		</td>
+	</tr>
+</table>
+</div>
+
+<script>
+var grid_size = 3;
+var seed = 0;
+
+var circles = document.getElementById('circles'),
+rectangles = document.getElementById('rectangles'),
+polygons = document.getElementById('polygons');
+
+function random(){
+	/*var x = Math.sin(seed++) * 10000;
+    return x - Math.floor(x);*/
+   	var x = seed++;
+   	return Math.abs(Math.sin(x));
+	return Math.abs((5*Math.sin(0.02*x) + 15*Math.sin(0.1*x+11) + 1*Math.sin(2*x) + 2*Math.sin(2*x) + 1*Math.sin(2.2*x)) / 24);
+}
+
+
+function draw(){
+	var orig_seed = seed;
+	[circles,rectangles,polygons].forEach(x => {x.innerHTML = ''});
+	circles.appendChild(draw_circles(random, {grid_size}));
+	rectangles.appendChild(draw_rectangles(random, {grid_size}));
+	polygons.appendChild(draw_polygons(random, {grid_size}));
+	seed = orig_seed;
+}
+
+draw();
+</script>
