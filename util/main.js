@@ -3,7 +3,7 @@
 //# sourceMappingURL=showdown.min.js.map
 
 window.addEventListener("load", () => {
-	const converter = new showdown.Converter()
+	const converter = new showdown.Converter({tables: true})
 	Array.from(document.getElementsByTagName("markdown"))
 		.forEach(target => {
 			target.innerHTML = converter.makeHtml(target.innerHTML)

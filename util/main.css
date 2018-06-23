@@ -1,9 +1,11 @@
+@import url('https://fonts.googleapis.com/css?family=Roboto+Mono');
+
 body {
 	width: 60%;
 	margin-left: auto;
 	margin-right: auto;
 	font-size: 18;
-	font-family: monospace;
+	font-family: 'Roboto Mono', monospace;
 }
 
 a:visited{
