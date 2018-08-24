@@ -1,0 +1,181 @@
+<link rel="stylesheet" type="text/css" href="../../util/main.css">
+<script src='../../util/main.js'></script>
+<body>
+<markdown>
+<center>
+# Playing roulette in constant time
+</center>
+------
+
+## What is roulette, and why do I care?
+I don't actually care about playing roulette, or simulating it on a computer, but it's a great analogy for the more general task of sampling from a *Discrete Probability Distribution*.
+
+For the uninitiated, roulette is a classic casino game in which a ball randomly falls into one of many slots. 
+The gambling element is betting on which slot, or group of slots, the ball will fall into. 
+The ball should have an equal probability of hitting each slot, and so the probability of winning is proportional to the number of slots you're betting on, or more generally the area of the slots you're betting on.
+<style>
+img[alt=realWheel] { width:33%; }
+</style>
+<center>
+![realWheel](imgs/rouletteWheel.jpg)
+<br>
+<span style="font-size: 14px;">A roulette wheel</span>
+</center>
+
+Sampling from a Discrete Probability Distribution comes up a lot, for example when doing MCMC over discrete random variables, or when working with discrete bayesian networks.
+The way sampling came into my life was while grading genetic algorithm projects, where many students implemented a technique known as fitness proportionate selection.
+This technique selects a candidate solution from a population with a probability proportionate to the candidate's fitness.
+
+Almost every student's sampling implemention ran in O(n) time, and because there are O(n) selection events, in total the selection stage ran in O(n²). 💩.
+The goal of this post is to describe sampling algorithms that run in O(n), O(log n), and O(1) time.
+
+Over the course of this post, I'll be working with the following probability distribution:
+<style>
+img[alt=probDist] { width:50%; }
+</style>
+<center>
+![probDist](imgs/barCharts0.png)
+<br>
+<span style="font-size: 14px;">An example probability distribution</span>
+</center>
+
+*A note on amortized time complexity: Many sampling algorithms require some preprocessing step.
+In this post assume we're calling the sampler >=O(n) times, so that in order to amortize the cost of the preprocessing down to <=O(1) time per call, we need to make the preprocessing run in <=O(n) time.*
+
+## Playing roulette, the easy way
+This section describes two sampling methods that run in O(n) and O(log n) time.
+Both methods work by breaking a roulette wheel into n slots, 
+such that each slot's size is proportional to it's assigned probability.
+They randomly place the ball on the wheel and pick the slot it falls in.
+The key difference between these two algorithms is in how they determine which slot the ball is in.
+
+Below is an illustration of such a probability distribution. 
+When representing this in a computer, we use a more common interval, in a sense an unravelled roulette wheel.
+<style>
+img[alt=rouletteColors] { width:50%; }
+</style>
+<center>
+![rouletteColors](imgs/rouletteColors.png)
+<br>
+<span style="font-size: 14px;">A probability distribution broken into a roulette wheel</span>
+</center>
+
+
+### The Naive Sampler, in O(n) time
+This is a simple linear search algorithm.
+We randomly put the ball somewhere and ask: 
+
+"is the ball in slot 1?"
+
+"is the ball in slots 1,2?"
+
+...
+
+"is the ball in slots 1,2,...,i?",
+
+we stop when the ball appears, knowing that ball must have been introduced at slot i.
+
+Below is an implementation of the naive sampler:
+<div>
+<script src="https://gist.github.com/julianoks/311d75340b45134edcb469006f4bb163.js"></script>
+</div>
+
+### The Binary Search Sampler, in O(log n) time
+This is a similar idea to the naive sampler, but rather than searching for the ball by expanding our interval, 
+we're going to tighten our interval around the ball.
+
+First, our interval will contain every slot, and we'll repeatedly ask "is the ball in the first half of slots in the interval?"
+If it is, we narrow our interval to the first half, and if not, we narrow our interval to the second half.
+Notice that we're ruling out half of the slots each iteration, cutting the possibilities in half until we have only one remaining slot.
+
+Because we're cutting our problem in half each iteration, our algorithm will take O(log n) time.
+
+*Note: some binary search implementations check if the middle element is the target.
+This makes the best case O(1), however the average case remains O(log n).*
+
+<div>
+<script src="https://gist.github.com/julianoks/bbb853afc10c7436911b59438649dc78.js"></script>
+</div>
+
+## The Alias Method Sampler, in O(1) time
+The alias method requires a non-trivial preprocessing step, 
+so we'll first discuss how sampling is done, and then get into how the preprocessing works.
+
+### The sampling
+Recall the probability distribution we mentioned before,
+<style>
+img[alt=probDist] { width:50%; }
+</style>
+<center>
+![probDist](imgs/barCharts0.png)
+<br>
+</center>
+We can sample a color by picking a random point (or pixel) in the picture above.
+The probability we'd be in eg the red bar would be proportionate to red's probability.
+
+However, it's possible that we don't end up in a bar, if we hit the background.
+In that case, we would have to try again.
+In fact, it turns out that in the average case we'd need O(n) tries, and in the worst case we'd never terminate.
+
+The idea behind the alias method is that we can never miss a bar if we rearrange the bars so that they fit flush.
+Surprisingly, we can rearrange the bars into n columns, where each column contains no more than two bars, like so:
+<style>
+img[alt=probDist] { width:50%; }
+</style>
+<center>
+![probDist](imgs/barCharts4.png)
+<br>
+</center>
+This structure is represented as 2 arrays of size n, *probs* and *aliases*. 
+
+*probs* is an array that stores the probability of getting color i in column i, for i=1,...,n.
+This could also be interpreted as the heights of the bottom bars in each column.
+
+*aliases* is an array of colors, that represent what color we get if we don't hit the bottom bar.
+This represents what color the top bar is in each column (not the height of the top bar).
+
+We'll discuss how this structure is constructed in the next subsection on preprocessing.
+
+Now to sample from this structure, we pick a column at random, and pick one of the 2 colors in the column proportionate to its size in the column.
+Algorithmically, it works like so (in javascript):
+<pre>
+const column = Math.floor(Math.random() * probs.length)
+if(Math.random() < probs[column]){ return column }
+else { return aliases[column] }
+</pre>
+
+
+### Preprocessing step, in O(n) time
+Given a vector of *n* probabilities, the preprocessing step populates the arrays *probs* and *aliases*.
+The goal is to fill up *probs* so that the probabilities are evenly distributed among slots and each slot contains no more than two colors.
+We'll be using [Vose's algorithm](https://web.archive.org/web/20131029203736/http://web.eecs.utk.edu/~vose/Publications/random.pdf) to do this in O(n) time and space.
+
+We start by seperating the probabilities into two stacks, those that are above average, *over*, and those that are below average, *under*.
+While *over* and *under* aren't empty, we top off an underfilled slot with some of an overfilled one. 
+This is animated below:
+<style>
+img[alt=vosesGif] { width:50%; }
+</style>
+<center>
+![vosesGif](imgs/vosesAlgorithm.gif)
+<br>
+<span style="font-size: 14px;">An animation of Vose's Algorithm</span>
+</center>
+
+Every iteration always fills up the underfilled slot, removing it from *under*, but may leave the overfilled slot in one of 3 states:
+- it may remain overfilled if it didn't get rid of all the excess, staying in *over*
+- it may become underfilled if it got rid of too much, moving from *over* to *under*
+- it may become perfectly filled, being removed from *over*
+
+No matter what occurs, the total number of slots in *over* and *under* will decrease by at least one each iteration, and because the initial number of slots in *over* and *under* is <=n, there will be at most n iterations.
+The work done inside the loop is clearly O(1) time, so in total the loop runs in O(n) time.
+We could also see that initializing ```probs``` and ```aliases``` is O(n) time, and seperating the probabilities into *over* and *under* is also O(n) time.
+So in total, the preprocessing runs in O(n) time, and trivially takes O(n) space.
+
+Here's the code for the alias method using Vose's algorithm:
+<div>
+<script src="https://gist.github.com/julianoks/25618d3334a9c20b39462a6219cffd14.js"></script>
+</div>
+
+</markdown>
+</body>
