@@ -1,0 +1,69 @@
+<html>
+<head>
+    <script src="js/drawPicture.js"></script>
+    <script src="js/optimize.js"></script>
+    <script src="js/pixels.js"></script>
+</head>
+<body>
+<table>
+    <tr>
+        <th>Target</th>
+        <th>Generated</th>
+    </tr>
+    <tr>
+        <td>
+            <img id="target">
+        </td>
+        <td id="generated"></td>
+    </tr>
+</table>
+
+<table>
+    <tr>
+        <td>Image:</td>
+        <td>
+            <select onchange="imgSrc=this.value;optimize();">
+              <option value="imgs/homer.jpg">Homer Simpson</option>
+              <option value="imgs/mona_lisa.jpg">Mona Lisa</option>
+              <option value="imgs/monkey.jpg">Monkey</option>
+            </select>
+        </td>
+    </tr>
+    <tr>
+        <td>Triangles:</td>
+        <td>
+            <input oninput="nTriangles=+this.value;document.querySelector('#nTriangles').innerText=nTriangles;optimize();" type="range" min="10" max="250" value="100">
+        </td>
+        <td id="nTriangles">100</td>
+    </tr>
+    <tr>
+        <td>Optimizer:</td>
+        <td>
+            <select onchange="optimizer=this.value;optimize();">
+              <option value="hillClimb">Hill Climbing</option>
+              <option value="beamSearch">Beam Search</option>
+            </select>
+    </tr>
+</table>
+
+</body>
+<script>
+let nTriangles = 100
+let imgSrc = 'imgs/homer.jpg'
+let optimizer = 'hillClimb'
+optimize()
+
+const generatedDisplay = document.querySelector('#generated')
+const targetImg = document.querySelector('#target')
+const opimizersDict = {beamSearch, hillClimb}
+
+function optimize(){
+    downloadImage(imgSrc, function(env){
+        clearInterval(window.opimizationLoop)
+        targetImg.src = imgSrc
+        const redraw = rep => drawPicture(rep, env, generatedDisplay)
+        window.opimizationLoop = opimizersDict[optimizer](env, nTriangles, redraw)
+    })
+}
+</script>
+</html>
