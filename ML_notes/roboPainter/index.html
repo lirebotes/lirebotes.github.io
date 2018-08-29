@@ -1,11 +1,35 @@
 <html>
 <head>
+    <title>roboPainter</title>
+    <link rel="stylesheet" type="text/css" href="../../util/main.css">
+    <script src='../../util/main.js'></script>
     <script src="js/drawPicture.js"></script>
     <script src="js/optimize.js"></script>
     <script src="js/pixels.js"></script>
+<script>
+let nTriangles = 100
+let imgSrc = 'imgs/homer.jpg'
+let optimizer = 'hillClimb'
+window.onload = optimize
+
+
+const opimizersDict = {beamSearch, hillClimb}
+
+function optimize(){
+    const generatedDisplay = document.querySelector('#generated')
+    const targetImg = document.querySelector('#target')
+    downloadImage(imgSrc, function(env){
+        clearInterval(window.opimizationLoop)
+        targetImg.src = imgSrc
+        const redraw = rep => drawPicture(rep, env, generatedDisplay)
+        window.opimizationLoop = opimizersDict[optimizer](env, nTriangles, redraw)
+    })
+}
+</script>
 </head>
 <body>
-<table>
+<div style="margin: 0 auto; width: fit-content;">
+<table id="painter" >
     <tr>
         <th>Target</th>
         <th>Generated</th>
@@ -17,7 +41,7 @@
         <td id="generated"></td>
     </tr>
 </table>
-
+<br>
 <table>
     <tr>
         <td>Image:</td>
@@ -43,27 +67,63 @@
               <option value="hillClimb">Hill Climbing</option>
               <option value="beamSearch">Beam Search</option>
             </select>
+        </td>
     </tr>
 </table>
+</div>
+
+<markdown>
+<center>
+# Painting with Beam Search
+</center>
+
+I made this demo for a class I was teaching at <a href="https://www.allstarcode.org/">All Star Code</a>
+as part of a series of lectures I called "AI without numbers".
+I know, all the cool AI uses gradients, probabilities, graphs, etc,
+but the simple techniques from "AI without numbers" were attractive for a few reasons.
+First, I personally find them interesting because they're surprisingly robust and effective.
+Perhaps more importantly, these were highschoolers taking an optional summer class; 
+it's supposed to be an edifying break from school.
+I didn't want to make them feel like they're in a math class.
+<!-- This comprised of lectures and projects on (simple) monte carlo methods, hill climbing, beam search, genetic algorithms, and a bit of combinatorial optimization. -->
+
+The goal of this project is to approximate a target image using a small number of triangles.
+There are 3 components to this: the representation, the objective, and the optimizer.
+
+We represent our solution as an array of triangles, where each triangle is an array of 10 numbers.
+The first 4 numbers represent the triangle's color in terms of <a href="https://en.wikipedia.org/wiki/RGBA_color_space">r,g,b,a</a>, where r,g,b are in (0,255) and a, or alpha, is in (0,1).
+The last 6 numbers represent the vertices of the triangle (as 3 2D coordinates).
+We use these triangles to generate an image.
+
+Our objective is to approximate the target image by making the generated image be *close* to the target.
+Although I promised we weren't going to use numbers, I'll ask for an easy exemption: to define our measure of closeness.
+We're going to unravel our target and generated images into pixel values, and take the familiar euclidean distance between their pixels.
+Thus our objective will be to minimize the euclidean distance to the target.
+
+Finally, we're going to find a solution by using either of two iterative optimization algorithms known as **hill climbing** and **beam search**.
+
+In **hill climbing**, we start with a random solution, and repeatedly make slight changes.
+If the change improves our solution, we keep it, otherwise we keep going.
+
+In **beam search**, we start with a population of *k* random solutions.
+Each iteration we make a slight change to each solution,
+and pick the best k solutions from the solutions we had and those we just made.
+In other words, we're doubling the size of the population and then picking the best half.
+
+What do I mean by a small change?
+Well there are many things that would work, but here I'm taking a random triangle 
+and resetting one of it's 10 values at random (a component of the color or one of the vertices).
+Again, many things would work as long as the change lands us somewhere in the *neighborhood*.
+
+Interestingly, hill climbing is actually a special case of beam search.
+In beam search, we have *k* solutions, we make *k* changes, and we pick the best *k*.
+If we have k=1, we would have hill climbing: we have one solution, we make a change, and we keep the best one.
+
+It's important to know that beam search is not a special case of hill climbing, and they really have very different dynamics.
+Consider doing hill climbing with 10 "climbers" on different hills. Eventually, they'd all reach the top of their respective hills.
+By contrast, in beam search if we have k=10 "searchers" on different hills, some may "jump" over to better hills, leaving inferior hills behind.
+
+</markdown>
 
 </body>
-<script>
-let nTriangles = 100
-let imgSrc = 'imgs/homer.jpg'
-let optimizer = 'hillClimb'
-optimize()
-
-const generatedDisplay = document.querySelector('#generated')
-const targetImg = document.querySelector('#target')
-const opimizersDict = {beamSearch, hillClimb}
-
-function optimize(){
-    downloadImage(imgSrc, function(env){
-        clearInterval(window.opimizationLoop)
-        targetImg.src = imgSrc
-        const redraw = rep => drawPicture(rep, env, generatedDisplay)
-        window.opimizationLoop = opimizersDict[optimizer](env, nTriangles, redraw)
-    })
-}
-</script>
 </html>
