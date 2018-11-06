@@ -41,27 +41,36 @@
 	font-size: 14px;
 }
 
+.center {
+	margin-left: auto;
+	margin-right: auto;
+	display: table;
+}
+
+.faces {
+    height: 21vmax;
+    width: 21vmax;
+    border-radius: 21vmax;
+
+    background-image:url("photos/faces/1.png"),url("photos/faces/2.png"),url("photos/faces/3.png");
+	background-repeat: repeat-y,repeat-y,repeat-y;
+	background-size: 7vmax;
+	background-position: left, center, right;
+	flex: 0 0 auto;
+	display: block;
+}
 </style>
 <body>
+
+<a href="photos/">
+	<div class="center faces"></div>
+</a>
+<h1 class="center">Julian's Website</h1>
 
 <div class="article">
 <img src="metric_learning/index.png">
 <h1>Metric Learning</h1>
 	<a class="readmore" href='metric_learning'>READ MORE</a>
-</div>
-
-
-<div class="article">
-<img src="value_iteration/index.png">
-<h1>Value Iteration</h1>
-	<a class="readmore" href='value_iteration'>READ MORE</a>
-</div>
-
-
-<div class="article">
-<img src="functions/index.png">
-<h1>Functions, tubas, and mixture models</h1>
-	<a class="readmore" href='functions'>READ MORE</a>
 </div>
 
 
@@ -73,6 +82,20 @@
 
 
 <div class="article">
+<img src="functions/index.png">
+<h1>Functions, tubas, and mixture models</h1>
+	<a class="readmore" href='functions'>READ MORE</a>
+</div>
+
+
+<div class="article">
+<img src="value_iteration/index.png">
+<h1>Value Iteration</h1>
+	<a class="readmore" href='value_iteration'>READ MORE</a>
+</div>
+
+
+<div class="article">
 <img src="roboPainter/index.png">
 <h1>Painting with Beam Search</h1>
 	<a class="readmore" href='roboPainter'>READ MORE</a>
@@ -80,18 +103,18 @@
 
 
 <div class="article">
-<img src="viz_sandbox/index.png">
-<h1>Interactive Viz Sandbox</h1>
-	A sandbox for interactive visualization
-	<a class="readmore" href='viz_sandbox'>READ MORE</a>
+<img src="recipes/index.png">
+<h1>Somerecipes, an Allrecipes Explorer</h1>
+	A class project that explores recipes.
+	<a class="readmore" href='recipes'>READ MORE</a>
 </div>
 
 
 <div class="article">
-<img src="recipes/index.png">
-<h1>Somerecipes, an Allrecipes Explorer</h1>
-	A class project to explore recipes.
-	<a class="readmore" href='recipes'>READ MORE</a>
+<img src="viz_sandbox/index.png">
+<h1>Interactive Viz Sandbox</h1>
+	A sandbox for interactive visualization, with support for linking & brushing.
+	<a class="readmore" href='viz_sandbox'>READ MORE</a>
 </div>
 
 
@@ -105,7 +128,7 @@
 <div class="article">
 <img src="pintograph/index.png">
 <h1>Generative Pintographer</h1>
-	An interactive simulation of a (modified) pintograph machine I made for an art project with my twin.  The interaction made parametric design a lot more fun, and allowed us to explore the vast space of parameters without typing.  In the end, we made 3D prints of the designs, laser engravings, and a metal casting.
+	An interactive simulation of a (modified) pintograph machine. Produced 3D prints, laser engravings, and a metal casting.
 	<a class="readmore" href='pintograph'>READ MORE</a>
 </div>
 
@@ -113,7 +136,9 @@
 <div class="article">
 <img src="emojirithmetic/index.png">
 <h1>EmojiArithmetic</h1>
-	An interactive demo of emoji embedding arithmetic, with embeddings taken from the <a href='https://arxiv.org/abs/1609.08359'>emoji2vec paper</a>.
+	A demo of emoji embedding arithmetic, with embeddings taken from the <a href='https://arxiv.org/abs/1609.08359'>emoji2vec paper</a>.
+	<br>
+	Warning: interface is dying.
 	<a class="readmore" href='emojirithmetic'>READ MORE</a>
 </div>
 
