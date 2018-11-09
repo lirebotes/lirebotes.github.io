@@ -48,24 +48,47 @@
 }
 
 .faces {
-    height: 21vmax;
-    width: 21vmax;
-    border-radius: 21vmax;
+    height: 3vmax;
+    width: 3vmax;
+    border-radius: 3vmax;
 
-    background-image:url("photos/faces/1.png"),url("photos/faces/2.png"),url("photos/faces/3.png");
+    background-image: url("photos/faces/3.png");
 	background-repeat: repeat-y,repeat-y,repeat-y;
-	background-size: 7vmax;
+	background-size: 3vmax;
 	background-position: left, center, right;
 	flex: 0 0 auto;
 	display: block;
 }
+
+table.personal td {
+    text-align: center;
+    vertical-align: middle;
+    padding: 5px;
+    position: relative;
+}
+
+
+
+table.personal a {
+	color:black;
+	text-decoration: none;
+	font-size: 14px;
+}
+
 </style>
 <body>
 
-<a href="photos/">
-	<div class="center faces"></div>
-</a>
-<h1 class="center">Julian's Website</h1>
+<table class="center personal">
+<tr>
+<td><a href="photos/"><div class="faces"></div></a></td>
+<td><h1 style="display:contents;">Julian Oks</h1></td>
+</tr>
+</table><table class="center personal">
+<tr>
+<td><a href="https://github.com/julianoks/">GitHub</a></td>
+<td><a href="etc/Julian_Oks_resume.pdf">Résumé</a></td>
+</tr>
+</table>
 
 <div class="article">
 <img src="metric_learning/index.png">
