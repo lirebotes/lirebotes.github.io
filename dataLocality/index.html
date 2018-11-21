@@ -1,0 +1,106 @@
+<link rel="stylesheet" type="text/css" href="../util/main.css">
+<script src='../util/main.js'></script>
+<body>
+<markdown>
+<center>
+# Big Data Principles: Data Locality
+</center>
+------
+
+This post gives an example of how we can get performance gains by considering data locality.
+We're going to use dictionaries and arrays, however the principles readily apply to other problems and data structures.
+
+## Background: Computer Architecture and Virtual Memory
+### Computer Architecture: Memory Hierarchy
+A computer's storage system is broken down into a hierarchical structure consisticting of multiple levels, with the hard drive on the bottom, to the RAM, and other components further on top.
+At the top we have extremely fast, but small and expensive forms of memory, sitting right next to a proccessor core.
+The further down we go, our memory becomes slower, but larger and cheaper.
+At the bottom is a hard drive, moving up to RAM, followed by shared caches (L4, L3), and caches that belong to individual CPU cores (L2, L1, L0).
+
+According to <a href="http://norvig.com/21-days.html#answers">Peter Norvig</a>, it takes about 0.5 ns (nanoseconds) to fetch from L1, 7 for L2, 100 ns for RAM, and 8,000,000 ns to fetch from disk.
+These numbers may be outdated, but the point remains: disk is slow.
+
+<style>
+img[alt=memHeriarchy] { width:50%; }
+</style>
+<center>
+![memHeriarchy](imgs/memHeriarchy.png)
+<br>
+<span style="font-size: 14px;">The memory heriarchy.</span>
+</center>
+
+
+### Caching, Data Locality
+If data is needed but lives far away, we may have to wait a very long, unproductive time for it to get to the processor.
+To alleviate this bottleneck, computer scientists aim to run computations whose data is already cached.
+One method is to prefetch our data before the processor needs it.
+
+Ideally our data would already be cached, and we wouldn't have to fetch it every single time.
+Programs that exhibit **data locality** do exactly this.
+Two major forms of data locality are **temporal locality**, where data that's used at one point is likely to be used again soon, 
+and **spatial locality**, where data that's close together in space is likely to be accessed close together in time.
+
+Because recently used data will stick around our cache, its clear that temporal locality will help keep soon to be used data in cache.
+What's not so clear is why spatial locality would help us. 
+As will be explained in the next section on virtual memory, we actually grab data in coarse-grained chunks.
+Hence when we cache data, we also end up caching nearby data too.
+
+### Virtual Memory
+Virtual memory is a somewhat large subject, so I'll just give a brief overview.
+The upshot is that under-the-hood, our computer breaks memory into coarse-grained chunks called pages.
+There are several advantages to using pages, but the one we'll focus on here is automatic memory allocation.
+
+Rather than manually allocate memory on RAM or disk, we have a single abstraction of virtual memory.
+When our RAM fills up, it automatically spills pages onto disk, and when we ask for a page, it may bring it into RAM.
+Conveniently, we don't have to think about moving data between RAM and disk -- but that doesn't mean we shouldn't!
+
+<style>
+img[alt=virtMem] { width:50%; }
+</style>
+<center>
+![virtMem](imgs/virtMem.png)
+<br>
+<span style="font-size: 14px;">A simplified view of virtual memory. Note that a physical page can reside and be moved between RAM and disk.</span>
+</center>
+
+## Writing more efficient code
+
+I encourage you to look at 
+<a href="https://colab.research.google.com/drive/1_nuXjUoTAzkW4ueFl3R13IttaV8LVTaF">the code</a> 
+used to generate these results.
+
+### Looking through a dictionary, 10x faster
+Let's make a big dictionary with a million items, and perform a mere hundred million accesses from our dictionary.
+
+Some people may think that the order in which we make these accesses won't matter, but if you learned anything from our previous discussion you should know that it very much does.
+In order to achieve temporal locality, we'll group accesses together.
+We could do this by sorting, like is done in the MapReduce framework, or by an O(n) dictionary-based grouping algorithm.
+
+Comparing a random access pattern with our grouped access pattern, we get a 10x performance gain.
+Notice that if we make our data smaller, either by reducing the number of items or their size, these gains diminish.
+This is because all or most of our data now fits in RAM, so there's less benefit from working to keep our data in memory, which it already fits in.
+
+### Looking through an array, 7x faster
+This time we'll pack an array of the same million items and again perform a hundred million accesses from our array.
+
+In addition to grouping our accesses together, we'll also sort our accesses by index.
+This has the same effect of grouping indices next to eachother, but additionally achieves spatial locality.
+We find that the sorted indices perform slightly (>10%) better than grouped accesses, and 7x better than the random access pattern.
+
+I assume we'd see a bigger difference between the sorted and grouped methods if we only accessed each item once.
+If this was the case, temporal locality wouldn't be a factor because no items are reaccessed.
+
+Why does the array not enjoy the same speedups as our dictionary?
+While I'm not totally privy to all of python's under-the-hood details, 
+my suspicion is that python tightly packs our array into memory, possibly contiguously.
+On the other hand, dictionaries live on fragmented, noncontiguous memory, thus occupying more pages for the same data.
+Further, dictionaries must also store keys, which accounts for (at least) another 10% space increase.
+
+
+### About that overhead . . .
+If we're clever and lucky we could sometimes get data locality for free, or on the cheap.
+In our examples the overhead of grouping isn't excrutiating, and sorting isn't great but it's not excessive.
+However, we should be aware that this overhead could make our total execution time slower if the gains are meager and the overhead isn't sufficiently amortized.
+
+</markdown>
+</body>
