@@ -24,13 +24,13 @@ function parseProgram(str){
 }
 
 function bind(ks, vs){
-	let acc = {}
-	for(const i in ks){
-		if(ks[i].startsWith('...')){
-			return Object.assign(acc, {[ks[i].slice(3)]: vs.slice(i)})
-		} else { acc[ks[i]] = vs[i] }
-	}
-	return acc
+    let acc = {}
+    for(const i in ks){
+        if(ks[i].startsWith('...')){
+            return Object.assign(acc, {[ks[i].slice(3)]: vs.slice(i)})
+        } else { acc[ks[i]] = vs[i] }
+    }
+    return acc
 }
 
 function destructure(args, env){
@@ -39,7 +39,7 @@ function destructure(args, env){
         if(typeof(args[i]) === 'string' && args[i].startsWith('...')){
             if(args[i] === '...'){
                 i++
-                acc.push(...args[i])
+                acc.push(...evalExp(args[i], env))
             } else {
                 acc.push(...evalExp(args[i].slice(3), env))
             }
@@ -91,6 +91,7 @@ const newEnvironment = () => {
         'cons': (ele, list) => [ele, ...list],
         'conj': (ele, list) => [...list, ele],
         'nth': (list, n) => list[n],
+        'set': (list) => new Set(list),
         // higher order
         'map': (fn, list) => list.map(fn),
         'filter': (fn, list) => list.filter(fn),
@@ -107,6 +108,7 @@ const newEnvironment = () => {
         '*': (...args) => args.reduce((a,b) => a*b),
         '-': (...args) => args.reduce((a,b) => a-b),
         '/': (...args) => args.reduce((a,b) => a/b),
+        'mod': (...args) => args.reduce((a,b) => a%b),
         '>': (a,b) => a>b, '<': (a,b) => a<b,'=': (a,b) => a==b,
         // etc
         'get': (obj, prop) => obj[prop],
