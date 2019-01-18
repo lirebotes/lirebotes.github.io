@@ -33,7 +33,7 @@ function bind(ks, vs){
     return acc
 }
 
-function destructure(args, env){
+function spread(args, env){
     let acc = []
     for(let i=0; i<args.length; i++){
         if(typeof(args[i]) === 'string' && args[i].startsWith('...')){
@@ -44,9 +44,6 @@ function destructure(args, env){
                 acc.push(...evalExp(args[i].slice(3), env))
             }
         } else { acc.push(args[i]) }
-    }
-    for(const v of args){
-       
     }
     return acc
 }
@@ -72,7 +69,7 @@ function evalExp(exp, env){
     if(typeof(exp) === 'string' && exp.startsWith("'")) return exp.slice(1)
     if(typeof(exp) === 'string') return env[exp]
     if(!Array.isArray(exp)) return exp
-    const [op, ...args] = destructure(exp, env)
+    const [op, ...args] = spread(exp, env)
     if(typeof(op) === 'string' && baseOps.hasOwnProperty(op)){
         return baseOps[op](args, env)
     }
@@ -80,7 +77,7 @@ function evalExp(exp, env){
     return f(...(f.isMacro? args : args.map(a => evalExp(a, env))))
 }
 
-const newEnvironment = () => {
+function newEnvironment(){
     let env = {
         // lists
         'list': (...args) => args,

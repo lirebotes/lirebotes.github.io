@@ -1,8 +1,269 @@
+<link rel="stylesheet" type="text/css" href="../util/main.css">
+<script src='../util/main.js'></script>
 <body>
+<markdown>
+<center>
+# Making a (mini) Lisp
+</center>
+
+I try to write some code everyday, most of which are inconsequential exercises like the ones you'd find in a programming competition.
+But occasionally I'm more interesting and they may turn into a post, or even less likely, a useful application.
+I've been wanting to make a Lisp interpreter for sometime, and now that I finished my thesis and am on vacation, I've come across the time to finally get around to it.
+
+Why Lisp? Besides the plenty of smart evangelists (Peter Norvig, Paul Graham, etc), I've had many experiences that have reaffirmed Lisp as the most sensical programming language.
+Yes, you'll catch me writing Python, JavaScript, etc, but do a double-take and you'll realize I treat them like Lisps, and interestingly, many languages (Java 8, ES6) are regressing (progressing?) to Lisp, incorporating things that have been central to Lisp for 60 years (map/filter/reduce, closures, anonymous functions).
+There's something timeless about Lisp, which explains its continued influence and resurgence (Clojure).
+I also have a long personal history with Lisp -- my first two years of undergrad I almost exclusively wrote Clojure, a modern Lisp dialect, where I did a lot of old-school (planning, GAs, search) AI work, which is the world McCarthy conceived Lisp in.
+
+## Parsing
+
+One of the first things you'll notice about Lisp is the unbelievably simple and homogeneous syntax, composed of so-called "S-expressions".
+The first step will be to parse the provided program into an AST of S-expressions, which will be evaluated later.
+Because of Lisp's homogeneous and simple syntax this is relatively straightforward, and could be achieved in a handful of LOC.
+As a pro code golfer I'm tempted to do so, but I opted for a more verbose but efficient parser that constructs the AST in a single left-to-right pass without mutating or copying.
+
+```javascript
+function parseProgram(str){
+    let expression = ['']
+    let stack = [expression]
+    for(const char of str){
+        let context = stack[stack.length-1]
+        const lastExp = context[context.length-1]
+        if(char === '('){
+            if(lastExp === ''){ context.pop() }
+            let next = ['']
+            context.push(next)
+            stack.push(next)
+        } else if(char === ')'){
+            if(lastExp === ''){ context.pop() }
+            stack.pop()
+        } else if(/\s/g.test(char)){
+            if(lastExp !== ''){
+                context.push('')
+            }
+        } else {
+            context[context.length-1] += char
+        }
+    }
+    return expression
+}
+```
+
+## Evaluation
+
+Now we can evaluate our AST.
+Our Lisp is going to be interpreted instead of compiled, which made it simpler to create at the expense of performance, which we'll discuss later.
+We recursively evaluate each expression;
+To evaluate expressions according to the following rules:
+- Numeric or numeric-like value return the number
+- If the expression starts with a quote ```'``` we return the value as a symbol
+- If we encounter a symbol we lookup its value in our environment
+- If it's none of the above and not a list we simply return it
+- If it is a list we apply the function to the arguments
+    - If the function is registered as a macro, we supply it with the literal arguments
+    - Otherwise, we recursively evaluate the arguments and call the function
+
+```javascript
+function evalExp(exp, env){
+    if(!isNaN(+exp)) return +exp
+    if(typeof(exp) === 'string' && exp.startsWith("'")) return exp.slice(1)
+    if(typeof(exp) === 'string') return env[exp]
+    if(!Array.isArray(exp)) return exp
+    const [op, ...args] = spread(exp, env)
+    if(typeof(op) === 'string' && baseOps.hasOwnProperty(op)){
+        return baseOps[op](args, env)
+    }
+    const f = evalExp(op, env)
+    return f(...(f.isMacro? args : args.map(a => evalExp(a, env))))
+}
+```
+
+#### The Spread Operator
+You may notice a ```spread``` function being called when evaluating functions/macros.
+Essentially this function takes an array and flattens anything that evaluates to a list when it's preceded by the spread symbol, ```...```.
+For example, the expression ```(f 1 ...(list 2 3) 4)``` becomes ```(f 1 2 3 4)``` due to the spread operator.
+
+```javascript
+function spread(args, env){
+    let acc = []
+    for(let i=0; i < args.length; i++){
+        if(typeof(args[i]) === 'string' && args[i].startsWith('...')){
+            if(args[i] === '...'){
+                i++
+                acc.push(...evalExp(args[i], env))
+            } else {
+                acc.push(...evalExp(args[i].slice(3), env))
+            }
+        } else { acc.push(args[i]) }
+    }
+    return acc
+}
+```
+
+## Primitive Operations
+Now that we have the infrastructure to parse and evaluate programs, we need to start populating our lisp with primitive operations.
+These are stored in the ```baseOps``` object, which contains only 5 operations:
+- ```def``` is used to bind a value to a key in the current scope.
+- ```if``` is a conventional if/else statement, which will only evaluate the selected expression.
+- ```quote``` simply returns the first argument as a symbol, as-is.
+- ```fn``` creates a function
+- ```macro``` creates a macro
+
+```javascript
+const baseOps = {
+    'def': ([key, val], env) => { return env[key] = evalExp(val, env) },
+    'if': ([cond, a, b], env) => evalExp(evalExp(cond, env)? a : b, env),
+    'quote': (args) => args[0],
+    'fn': ([params, ...exprs], env) => (...supplied) => {
+        const newEnv = Object.assign({}, env, bind(params, supplied))
+        return exprs.map(a => evalExp(a, newEnv)).pop()
+    },
+    'macro': ([params, ...exprs], env) => (f => {f.isMacro=true; return f;})(
+        (...supplied) => {
+            const subEnv = Object.assign({}, env, bind(params, supplied))
+            const transformed = exprs.map(a => evalExp(a, subEnv)).pop()
+            return evalExp(transformed, env)
+        })
+}
+```
+
+#### Passing Arguments to Functions and Macros
+The ```fn``` and ```macro``` operations result in functions that recieve arguments that can be referenced within the function's body.
+To achieve this, we create a new environment where the parameter names are bound to the supplied values:
+
+```Object.assign({}, env, bind(params, supplied))```
+
+The bind function binds the parameter names to the supplied values.
+The bind function also allows for a spread-like syntax that binds an arbitrary number of arguments to an array.
+For example, 
+```((fn (a b ...rest) (list a b rest)) 1 2 3 4 5 6)```
+evaluates to ```[1, 2, [3, 4, 5, 6]]``` because the remaining arguments (3,4,5,6) are captured in the rest argument.
+The bind function is implemented like so:
+```javascript
+function bind(ks, vs){
+    let acc = {}
+    for(const i in ks){
+        if(ks[i].startsWith('...')){
+            return Object.assign(acc, {[ks[i].slice(3)]: vs.slice(i)})
+        } else { acc[ks[i]] = vs[i] }
+    }
+    return acc
+}
+```
+
+## Standard Environment
+The standard environment gives us an opportunity to populate the langauge with many default values/functions.
+We'll provide a lot of functions and values, mostly written in JavaScript.
+Many of these can be defined using the mini-lisp itself -- two macros (```defn``` and ```defmacro```) are defined towards the bottom using the mini-lisp.
+```javascript
+function newEnvironment(){
+    let env = {
+        // lists
+        'list': (...args) => args,
+        'count': (list) => list.length,
+        'first': (list) => list[0],
+        'rest': (list) => list.slice(1),
+        'last': (list) => list[list.length-1],
+        'cons': (ele, list) => [ele, ...list],
+        'conj': (ele, list) => [...list, ele],
+        'nth': (list, n) => list[n],
+        'set': (list) => new Set(list),
+        // higher order
+        'map': (fn, list) => list.map(fn),
+        'filter': (fn, list) => list.filter(fn),
+        'reduce': (fn, list, init=null) => list.reduce(fn, init),
+        'apply': (fn, list) => fn(...list),
+        // boolean
+        'true': true,
+        'false': false,
+        'and': (...exprs) => exprs.reduce((a,b) => a && b, true),
+        'or': (...exprs) => exprs.reduce((a,b) => a || b, true),
+        'not': (x) => !x,
+        // math
+        '+': (...args) => args.reduce((a,b) => a+b),
+        '*': (...args) => args.reduce((a,b) => a*b),
+        '-': (...args) => args.reduce((a,b) => a-b),
+        '/': (...args) => args.reduce((a,b) => a/b),
+        'mod': (...args) => args.reduce((a,b) => a%b),
+        '>': (a,b) => a>b, '<': (a,b) => a<b,'=': (a,b) => a==b,
+        // etc
+        'get': (obj, prop) => obj[prop],
+        'range': (n) => Array(n).fill().map((_,i)=>i),
+        'console': console.log,
+        'window': window,
+        'Math': Math,
+    }
+    const stdMacros = `
+    (def defn
+        (macro (name args body)
+            (list 'def name
+                (list 'fn args body))))
+
+    (def defmacro
+        (macro (name args body)
+            (list 'def name
+                (list 'macro args body))))
+    `
+    evalProgram(stdMacros, env)
+    return env
+}
+```
+
+## Putting it All Together
+Finally, we create our global environment:
+
+```let GLOBAL = newEnvironment()```
+
+We lastly create a function that composes the parser and evaluator:
+```javascript
+export function evalProgram(str, env=GLOBAL){
+    return parseProgram(str).map(p => evalExp(p, env)).pop()
+}
+```
+
+We now have a fully functioning lisp, which we can play around with using a REPL:
+
+## The REPL
+<div id='bottomREPL'></div><br><br>
+
+### Examples
+Prime Factorization:
+```
+(defn factors-helper (n k acc)
+    (if (= n 1)
+        (list ...(set acc))
+        (if (= 0 (mod n k))
+            (factors-helper
+                ((get Math 'floor) (/ n k))
+                k
+                (cons k acc))
+            (factors-helper
+                n
+                (+ 1 k)
+                acc))))
+(defn factors (n)
+    (factors-helper n 2 (list)))
+```
+
+## Why So Slow?
+There are a number of reason I believe our mini lisp is so slow:
+
+First, virtual functions calls are expensive.
+One way that Clojure mitigates this is by being semi-compiled; 
+because it’s supported by the JVM, which compiles JIT and stores compiled subprograms that are frequently used.
+
+Further, you'll notice that due to the number of function calls you'll likely recieve many "maximum call stack size exceeded" errors.
+
+Another reason is that we implement pass-by-value via deep cloning. 
+Something that makes virtual function calls especially expensive in this language is that each call requires building a new scope by taking a deep copy of the outer scope. 
+One improvement would be to efficiently create and manage a scope using a trie data structure (looking at you Immutable.js), where not only the minimal number of data items would be copied, but a minimal region of each item copied. 
+This would be at the welcome expense of read efficiency.
+
+</markdown>
 </body>
 
 <script type="module">
 import {newDOM} from './repl.js'
 
-document.body.appendChild(newDOM())
+document.querySelector('#bottomREPL').appendChild(newDOM())
 </script>
