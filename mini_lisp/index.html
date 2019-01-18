@@ -224,7 +224,7 @@ export function evalProgram(str, env=GLOBAL){
 We now have a fully functioning lisp, which we can play around with using a REPL:
 
 ## The REPL
-<div id='bottomREPL'></div><br><br>
+<div id='REPL'></div><br><br>
 
 ### Examples
 Prime Factorization:
@@ -262,8 +262,9 @@ This would be at the welcome expense of read efficiency.
 </markdown>
 </body>
 
-<script type="module">
+<script type="module" defer>
 import {newDOM} from './repl.js'
 
-document.querySelector('#bottomREPL').appendChild(newDOM())
+window.onload = () => Array.from(document.querySelectorAll('#REPL'))
+    .forEach(ele => ele.appendChild(newDOM()))
 </script>

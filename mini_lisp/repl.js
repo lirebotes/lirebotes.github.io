@@ -4,7 +4,7 @@ const defaultSubmitAction = (inputValue, textDiv) => {
     textDiv.innerText += `>>> ${inputValue}`
     textDiv.scrollTop = textDiv.scrollHeight
     try{
-        textDiv.innerText += `\n${evalProgram(inputValue)}\n`
+        textDiv.innerText += `\n${JSON.stringify(evalProgram(inputValue))}\n`
     } catch(e){
         textDiv.innerText += `\n${e}\n`
     }
