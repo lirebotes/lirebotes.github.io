@@ -1,0 +1,32 @@
+
+<link rel="stylesheet" type="text/css" href="../util/main.css">
+<script src='../util/main.js'></script>
+<body>
+<markdown>
+<center>
+# BlinkDB
+[BlinkDB: Queries with Bounded Errors and Bounded Response Times on Very Large Data](https://sameeragarwal.github.io/blinkdb_eurosys13.pdf)
+</center>
+
+### Summary
+This paper presents BlinkDB, an approximate SQL query engine. BlinkDB intelligently subsamples massive datasets for approximate analytics tasks, allowing analyses to be performed without using the entire dataset. When subsampling, BlinkDB gives error bounds on the results of the query. Further, BlinkDB allows user to bound the sample size (and thus response time), as well as the accuracy of the results. For these reasons, BlinkDB is an excellent analytics framework that’s especially apt for massive datasets.
+
+### Strengths
+1. BlinkDB allows users to bound the response time and error on a query. For many tasks, total accuracy is superfluous, and would require running a query over the entire dataset, which is both long and expensive. On the other hand, a naive subsampling may be statistically inefficient and doesn’t provide any accuracy guarantees. BlinkDB addresses both these problems by allowing users to explicitly tradeoff between the runtime (how much data is used) and the accuracy (which data is used and how that affects the error).
+
+2. Stratified sampling is a statistically efficient method of sampling that captures rare subpopulations (eg long tails). Stratified sampling essentially takes up to K values from each subpopulation; thus every subpopulation is represented in the sample, although rarer subpopulations are relatively overrepresented and more larger subpopulations are underrepresented. Like in importance sampling, we can produce an unbiased result despite operating over a biased sample. By weighing our samples, we essentially invert the sampling distribution to produce the posterior, leaving us with a mean (our result) and variance (error bounds).
+
+3. Because stratified sampling is so expensive, BlinkDB intelligently optimizes which columns will be used to create samples. Briefly, they consider multiple factors when deciding which columns should be stratified: how much it costs to store the samples, the utility of having that sample, and the sparsity of the data. BlinkDB uses these factors in a mixed integer linear programming problem which they solve to determine which samples will be created. In essence, they pick samples so as to maximize the amount of queries covered (while satisfying some constraints).
+
+4. BlinkDB optimizes which samples will be produced by solving an optimization problem, which essentially aims to maximize query coverage. Using stratified samples is very beneficial, and because they’re expensive, limiting the number of samples is important. Their method assumes that frequency of column usage in the future will be consistent with that of the past. This is a fair assumption, that was actually shown to be applicable to a very broad range of systems, thus allowing stratified sampling methods to be used.
+
+### Weaknesses
+1. BlinkDB can only provide approximate results for queries involving operations like COUNT, SUM, AVG, and QUANTILE. Ideally, an approximate SQL engine would be able to provide a distribution over outcomes, not just a mean and variance. I don’t believe this limitation is from a lack of development, but rather a fundamental limitation with how they calculate their posterior by weighting.
+
+2. Stratified sampling may require a lot of storage, especially for datasets with very many subpopulations/groups. This makes stratified sampling quite expensive, limiting the number of stratified samples BlinkDB can create.
+
+3. Because multiple queries may reuse the same sample(s), their results may be correlated in such a way that does not properly represent the data. For example, if an “unlucky” sample is chosen that reveals a spurious trend, multiple queries that use this sample will reflect this.
+
+
+</markdown>
+</body>

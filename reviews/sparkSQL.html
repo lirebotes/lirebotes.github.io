@@ -1,0 +1,34 @@
+
+<link rel="stylesheet" type="text/css" href="../util/main.css">
+<script src='../util/main.js'></script>
+<body>
+<markdown>
+<center>
+# Spark SQL
+[Spark SQL: Relational Data Processing in Spark](https://amplab.cs.berkeley.edu/wp-content/uploads/2015/03/SparkSQLSigmod2015.pdf)
+</center>
+### Summary
+This paper describes Spark SQL, a Spark module that adds relational processing to Spark’s API. This allows Spark users to benefit from integrated SQL/relational processing, and lets SQL users benefit from Spark’s capabilities. This paper also describes an important component of Spark SQL, the Catalyst optimizer, an extensible tree-based optimizer that supports rule- and cost-based optimization. Altogether, Spark SQL allows users to build very efficient systems that naturally mix relational (SQL) and procedural (Spark) processing.
+
+### Strengths
+1. Spark SQL is a Spark module that allows user to mix relational and procedural processing. SQL alone is onerous or insufficient for complex tasks; previously, SQL users would have to write UDFs (user defined functions) in a separate environment and integrate the UDF in a rather complicated manner, fragmenting and obfuscating the code. On the other hand, Spark SQL users can seamlessly mix Spark and SQL code by defining UDFs inline, which may include Spark functions.
+
+2. DataFrames are a flexible and efficient abstraction that integrates nicely into the Spark model. Like Spark RDDs, DataFrames are lazy, representing a logical plan rather than a necessarily materialized result; DataFrames are only materialized when involved in an action/output operation. DataFrames can be created either from an RDD or another data source. In the case of an RDD, Spark SQL simply points to the RDD, which is both efficient and allows the system to benefit from Spark’s fault tolerance characteristics.
+
+3. The Catalyst optimizer allows Spark SQL to optimize relational processing to a level that’s competitive with other SQL engines. DataFrames’ deferred materialization enables Catalyst to create and optimize a plan knowing the full extent of the computation. Operations on DataFrames are expression in a DSL (eg groupBy, join, count, etc), rather than arbitrary and opaque functions like in Spark. Hence DataFrames represent an AST of known operations, which is fed into the Catalyst optimizer. 
+
+4. Catalyst is an optimizer that operates over trees, supporting both rule- and cost-based optimization. Catalyst leverages Scala’s programming model, applying functional transformation on immutable trees using Scala’s built-in “quasiquotes”. This makes Catalyst easy to reason about, and makes the optimizer simpler, more extensible and pluggable. Catalyst supports code generation of Java bytecode, which is facilitated by Scala’s quasiquotes. Code generation makes execution more efficient by avoiding interpretation cost at execution, particularly avoiding the cost of branching and virtual function calls.
+
+5. Like a table in a relational database, rows of a DataFrame have a homogenous schema. Spark SQL takes advantage of this; instead of storing rows as opaque JVM or Python objects, it can store a DataFrame in a compressed columnar format, allowing more data to fit in memory. Like Spark RDDs, DataFrames can be cached for reuse.
+
+### Weaknesses
+1. Spark SQL can create DataFrames from sources like RDDs. In the process, Spark SQL automatically infers a schema from the data. This is simpler for statically-typed languages like Java, however for dynamically-typed languages, like Python, Spark SQL samples the data to extract a schema. In the latter case, sampling may miss rows that are inconsistent with the extracted schema.
+
+2. Spark SQL allows users to mix DataFrames and RDDs, however if this is done excessively, it may cause a lot of expensive reflection when generating DataFrame schemas. This must be done because Spark functions are opaque, however this expensive reflection and schema inference can be avoided by allowing the user to hint the schema.
+
+3. The paper’s evaluation showed that Spark SQL is competitive with Impala, although their evaluation should have also compared Spark SQL to more traditional SQL query engines.
+
+
+
+</markdown>
+</body>

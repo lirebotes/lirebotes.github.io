@@ -1,0 +1,35 @@
+<link rel="stylesheet" type="text/css" href="../util/main.css">
+<script src='../util/main.js'></script>
+<body>
+<markdown>
+<center>
+# Pregel
+[Pregel: A System for Large-Scale Graph Processing](https://kowshik.github.io/JPregel/pregel_paper.pdf)
+</center>
+
+### Summary
+This paper introduces Pregel, a framework and associated library for distributed, fault-tolerant graph processing. Pregel employs a rather simple vertex-centric model that is well-suited for distributed processing of large graphs. Pregel’s programming model iteratively applies a user defined function to each vertex, which can send and receive values and update state. This model is expressive enough to simply and efficiently implement many graph algorithms in a parallel manner. Pregel is shown to be an efficient and highly-scalable system, and seems to have been successfully deployed in some of Google’s systems.
+
+
+### Strengths
+1) Pregel employs a rather simple vertex-centric model that is well-suited for distributed processing of large graphs. The user defines a function, `Compute()`, which is applied to each vertex in an independent manner. This function can receive values (sent in the previous iteration), send values to other vertices (to be received in the next iteration), modify the vertex’s state, and possibly change the graph’s topology or deactivate the vertex. The Pregel system is then responsible for coordinating and distributing the work, propagating values between vertices, making it fault-tolerant, etc. Although this framework is similar to MapReduce in the sense that they both apply local, independent action to small items/splits, they are actually quite different in their implementation. For one, Pregel is stateful, persisting vertex and edge states in memory.
+
+2) Pregel uses message passing to send values, unlike systems like MapReduce that read values from remote machines. This has multiple benefits. First, it reduces latency and network traffic, as well as avoiding the problem of determining which vertices to pull from. Importantly, it allows for values to be delivered in batches as a single message, again reducing network traffic and performance. In the case that the vertex is on the same machine, the value is simply placed in the vertex’s incoming messages without leaving the machine.
+
+3) Like MapReduce, Pregel allows user to specify a `Combiner` function that combines values being sent to the same vertex, or combines values being received. Of course, a Combiner function should only be used for operations that are both commutative and associative. When applicable, a combiner function can drastically reduce network traffic and memory usage, allowing more data to fit in memory and not spill to disk.
+
+4) Aggregator operators allow for global coordination among vertices. At the end of each iteration, workers form a tree structure, which pass around a partially-reduced aggregator. Because the order of workers and number of applications is not guaranteed, the aggregator operator should also be commutative and associative.
+
+5) Pregel divides a graph’s vertices into partitions based on a vertex’s ID. This provides the tremendous benefit of not having to store the partition for each of the possibly billions of vertices.
+
+### Weaknesses
+1) By default, the partitioning of nodes onto machines does not account for the graph’s topology. Because of this naive partitioning, excessive messages may be sent over the network. Pregel allows users to specify the function used for partitioning, however it may not be feasible to create a function that corresponds to the graph’s topology. One solution to this problem would be for Pregel to dynamically repartition nodes based on their communication.
+
+2) Pregel achieves fault-tolerance by checkpointing workers. Because workers receive messages rather than pull them, when one worker fails it must re-receive all its messages to roll forward. Because other workers don’t save their outgoing messages, all of the workers must roll back to the latest checkpoint. This is a terrible flaw. One way to avoid this is to store worker’s outgoing messages.
+
+3) Once a worker finishes its work and receives all of it’s incoming values, it waits for the synchronization to complete before moving on to the next iteration. The drawback to this approach is that the system will only be as fast as the slowest worker. Efforts to balance loads among workers was discussed, but handling slow machines, called “stragglers” in MapReduce, was not mentioned.
+
+4) Although aggregators allow for greater flexibility, exposing the global state is a departure from Pregel’s paradigm of local action. Additionally, it may increase the synchronization time, increasing workers’ idle time.
+
+</markdown>
+</body>

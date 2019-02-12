@@ -1,0 +1,35 @@
+
+<link rel="stylesheet" type="text/css" href="../util/main.css">
+<script src='../util/main.js'></script>
+<body>
+<markdown>
+<center>
+# The Weld Common Runtime
+[Weld: A Common Runtime for High Performance Data Analytics](https://cs.stanford.edu/~matei/papers/2017/cidr_weld.pdf)
+</center>
+
+### Summary
+This paper presents Weld, a common runtime targeting data analytics libraries. Weld aims to to optimize within and between libraries by unifying and optimizing their underlying runtime. Central to Weld is its intermediate representation for representing arbitrary computations, which is passed to a runtime and compiled to efficient code. Overall, Weld provides significant end-to-end speedups for applications that utilize a single library, and compellingly, for applications utilizing multiple libraries.
+
+### Strengths
+1. Many application use multiple libraries for various tasks; eg TensorFlow for machine learning, Spark SQL for data management, Pandas for analysis, etc. Unfortunately these libraries often store and operate on their data in a custom runtime, precluding cross-library optimizations and requiring costly data movement between libraries. Moving data is especially burdensome because many of these libraries are data-intensive, meaning that they perform relatively little computation relative to the data’s size. Hence these applications are becoming memory-bound. Weld addresses this by storing data in a unified format, allowing the same structure to be used by various libraries.
+
+2. Because computations are executed lazily, the Weld runtime can perform optimizations like loop fusion and tiling, vectorization, parallelization, and common subexpression elimination. Further, the runtime collects fragments of IR code, which can be jointly optimized between multiple functions from multiple libraries.
+
+3. Weld’s intermediate representation is amenable to various optimizations, especially parallelization. Meld uses a functional IR that’s based on parallel loops and “builders”, a method for merging the results of these loops. The IR is extremely simple, consisting of relatively few operators with functional and immutable semantics. This simplicity aids in the IR’s usage, analysis, optimization, and compilation.
+
+4. Weld operates on a rather simple data model; data structures are composed of nestable scalars, structures, vectors and integers. These structures can be shared amongst libraries without the costly data movement. The paper also suggests that these are efficient and lightweight implementations, speeding up common tasks like hash joins.
+
+5. Generally, centralizing the runtime allows all the downstream users to benefit from Weld’s various optimizations. The paper gave the example that if the authors of Spark SQL used Weld, they wouldn’t have to have to work to optimize many aspects of DataFrames (eg loop fusion, pruning, etc).
+
+
+### Weaknesses
+1. Weld’s data format may be inefficient for certain tasks and may not integrate well into some ecosystems. For example, representing and operating over tensors represented as nested vectors is quite inefficient. Ideally Weld would support more linear algebra data types, structures, and operations, and provide casting semantics to vectors. Second, many ecosystems and organizations prefer formats like Protocol Buffers, Apache Arrow and Parquet; Weld should interoperate nicely with these systems.
+
+2. Weld’s IR is built to explicitly model parallelism, but does not capture data placement. This limits scalability to cluster environments and foregoes locality optimizations. Importantly, this makes GPU usage much less efficient because transferring data to/from a GPU is a common bottleneck. The paper mentions that Weld does not (yet) support GPUs, however this limitation would impact their performance if they were adopted.
+
+3. Because Weld’s IR is purely functional, it is deterministic and thus cannot allow stochastic race conditions. This is usually a good thing, however a few algorithms, like Hogwild!, require this.
+
+
+</markdown>
+</body>

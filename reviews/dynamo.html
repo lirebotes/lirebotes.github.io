@@ -1,0 +1,38 @@
+
+<link rel="stylesheet" type="text/css" href="../util/main.css">
+<script src='../util/main.js'></script>
+<body>
+<markdown>
+<center>
+# Dynamo Key-Value Store
+[Dynamo: Amazon’s Highly Available Key-value Store](https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf)
+</center>
+
+### Summary
+This paper discusses Dynamo, a decentralized key-value store which primarily supports just two operations: get and put. Dynamo is designed to be extremely available at the expense of weakened consistency, which is managed using object versioning, as well as automatic and application-assisted reconciliation. Dynamo allows users to adjust its performance, availability, and durability by configuring a small number of simple parameters. Overall, Dynamo accomplished its design goals and has proved to be excellent system that succeeds in Amazon’s demanding production environment.
+
+### Strengths
+1. Dynamo allows users to adjust the system’s performance, availability, and durability by configuring the parameters N, R, and W. Briefly, N is the number of machines a data item is replicated at, R and W are the minimum number of nodes that must participate in a successful read and write operation, respectively. Because an operation’s latency is determined by the slowest node, allowing R or W to be less than N provides better performance. These parameters have an important impact on the system’s characteristics: increasing N improves durability, increasing W increases durability at the expense of write availability, and increasing R increases consistency at the expense of read availability. A quorum can be produced by having R+W>N, so that at least one data item will be present from the most recent successful read or write. Interestingly, although Dynamo was primarily designed to be write-optimized, one can even produce a read-optimized system by setting R=1 and W=N.
+
+2. Dynamo is a decentralized system, where each node takes on responsibilities symmetric to its peers. In certain ways, the absence of a master makes the overall system more available, scalable and robust to failure.
+
+3. Dynamo’s partitioning algorithm is based on a variation of consistent hashing. Perhaps the largest advantage to this technique is that nodes can gracefully join and leave the ring; only the neighboring nodes are affected.
+
+4. One departure from the traditional consistent hashing technique is Dynamo’s use of virtual nodes. This allows a single node (a machine) to be responsible for multiple virtual nodes. One benefit to virtual nodes is that we can increment a node’s workload by changing its number of virtual nodes. Another advantage to this is that when a machine joins or leaves, it amounts to multiple virtual nodes joining or leaving, diffusing the work of moving data to multiple machines (but not all).
+
+5. There is an inherent tension between availability and consistency. Because Dynamo was built to be a highly available system, its designers chose to relax consistency guarantees for better availability. Rather than be fully consistent, Dynamo provides eventual consistency, and keeps track of the multiple versions of a data item that may simultaneously exist. Dynamo can sometimes perform syntactic reconciliation automatically, however if conflicting branches occur, Dynamo may have to use a reconciliation mechanism provided by the user.
+
+6. Dynamo provides a very effective optimization that allows one to tradeoff durability for performance. Rather than write a data item to disk, this optimization places it in a memory, which is periodically moved to disk by another thread. This was shown to improve performance by a factor of 5, however when a worker fails, any data that’s not on disk will be lost.
+
+7. Dynamo efficiently synchronizes replicas using Merkle trees, which both reduces the number of disk reads and the traffic sent between nodes.
+
+### Weaknesses
+1. Many other decentralized distributed hash tables and P2P systems (eg Chord, Pastry) only store a small portion of the routing table on each node, and perform routing by “hopping” between nodes. For example, both Chord and Pastry only store O(log n) of the full routing table and perform O(log n) hops to find the intended node. Because hopping incurs significant latency, Dynamo chooses to store the entire routing table on each node, which it synchronizes by periodically gossiping to other nodes. This scheme may work at the scale presented in the 2006 paper that only used a few hundred nodes, but it will not scale to many thousands of nodes (in regards to storage and network). In order to scale, Dynamo may need to impose a hierarchical structure, or allow for a small number of hops using a distributed lookup or Chord-like techniques.
+
+2. One could argue that Dynamo’s weak consistency guarantees and need for a reconciliation mechanism may add complexity to the programmer’s interface, produce bugs, and may be unsuitable for certain classes of systems. Although this a valid criticism, for the class of systems targeted by Dynamo, if one demands high availability then weak consistency is unavoidable (CAP theorem). Given this tradeoff, Dynamo actually provides a pretty good reconciliation infrastructure.
+
+3. Dynamo keeps track of versions using vector clocks, essentially giving the history of a particular data item version. If there is a failure and a data item is produced in a hinted handoff, another pair is added to the clock. If this repeats, the vector clock may grow very large. To alleviate this eventuality, Dynamo truncates the clock after some threshold, which may create problems for automatic reconciliation.
+
+
+</markdown>
+</body>
