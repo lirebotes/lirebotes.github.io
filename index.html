@@ -76,6 +76,18 @@ table.personal a {
 }
 
 </style>
+<script>
+window.onload = () => {
+	Array.from(document.querySelectorAll('.article')).forEach(article => {
+		let a = document.createElement('a')
+		a.href = article.querySelector('.readmore').href
+		a.style = 'color:black; text-decoration: none;'
+		a.appendChild(article.cloneNode(true))
+		article.parentNode.insertBefore(a, article)
+		article.remove()
+	})
+}
+</script>
 <body>
 
 <table class="center personal">
@@ -97,18 +109,16 @@ table.personal a {
 	</div>
 
 <div class="article">
-<img src="metric_learning/index.png">
-<h1>Metric Learning</h1>
-	<a class="readmore" href='metric_learning'>READ MORE</a>
-</div>
-
-
-<div class="article">
 <img src="roulette/index.gif">
 <h1>Playing roulette in constant time</h1>
 	<a class="readmore" href='roulette'>READ MORE</a>
 </div>
 
+<div class="article">
+<img src="metric_learning/index.png">
+<h1>Metric Learning</h1>
+	<a class="readmore" href='metric_learning'>READ MORE</a>
+</div>
 
 <div class="article">
 <img src="dataLocality/index.jpg">
@@ -116,13 +126,11 @@ table.personal a {
 	<a class="readmore" href='dataLocality'>READ MORE</a>
 </div>
 
-
 <div class="article">
 <img src="functions/index.png">
 <h1>Functions, tubas, and mixture models</h1>
 	<a class="readmore" href='functions'>READ MORE</a>
 </div>
-
 
 <div class="article">
 <img src="value_iteration/index.png">
@@ -130,13 +138,11 @@ table.personal a {
 	<a class="readmore" href='value_iteration'>READ MORE</a>
 </div>
 
-
 <div class="article">
 <img src="roboPainter/index.png">
 <h1>Painting with Beam Search</h1>
 	<a class="readmore" href='roboPainter'>READ MORE</a>
 </div>
-
 
 <div class="article">
 <img src="recipes/index.png">
@@ -145,14 +151,12 @@ table.personal a {
 	<a class="readmore" href='recipes'>READ MORE</a>
 </div>
 
-
 <div class="article">
 <img src="viz_sandbox/index.png">
 <h1>Interactive Viz Sandbox</h1>
 	A sandbox for interactive visualization, with support for linking & brushing.
 	<a class="readmore" href='viz_sandbox'>READ MORE</a>
 </div>
-
 
 <div class="article">
 <img src="poster_grid/index.png">
@@ -168,14 +172,19 @@ table.personal a {
 	<a class="readmore" href='pintograph'>READ MORE</a>
 </div>
 
-
 <div class="article">
 <img src="emojirithmetic/index.png">
 <h1>EmojiArithmetic</h1>
-	A demo of emoji embedding arithmetic, with embeddings taken from the <a href='https://arxiv.org/abs/1609.08359'>emoji2vec paper</a>.
+	Deprecated: A demo of emoji embedding arithmetic, with embeddings taken from the <a href='https://arxiv.org/abs/1609.08359'>emoji2vec paper</a>.
 	<br>
-	Warning: interface is dying.
 	<a class="readmore" href='emojirithmetic'>READ MORE</a>
+</div>
+
+<div class="article">
+	<img src="playingGANs/index.gif">
+	<h1>Playing with GANs</h1>
+	<center>Made on a snow day.</center>
+	<a class="readmore" href='playingGANs'>READ MORE</a>
 </div>
 
 </body>
