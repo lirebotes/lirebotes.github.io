@@ -1,0 +1,66 @@
+<link rel="stylesheet" type="text/css" href="../util/main.css">
+<script src='../util/main.js'></script>
+<body>
+<markdown>
+<center>
+# Attractive Fixed Points of a Super Resolution Model
+Code found [here](https://colab.research.google.com/drive/1_IJ9LyeDcJlFWQ7mKGPlB3cqg1Di-bnq).
+</center>
+This experiment aims to find attractive fixed points of a neural super-resolution model.
+I was initially interested in this for two reasons, 1) some traditional methods of super resolution use fixed-point iteration, and 2) the idea resembles deep dream in some ways.
+
+## Setup
+
+The super resolution model I used is a function \\(SR: \mathbb{R}^{w \times h \times 3} \to \mathbb{R}^{2w \times 2h \times 3} \\) that takes an image and doubles its width and height dimensions, enhancing and adding details in the process, hence the term super-resolution.
+What we'll do is define an iterated version of this function, where the \\( n^{th} \\) iteration is \\( SR\_{n}(X) = SR(SR\_{n-1}(X)) \\) and \\( SR\_0(X) = X \\).
+Because the width and height will increases exponentially in \\( n \\), \\( SR\_n: \mathbb{R}^{w \times h \times 3} \to \mathbb{R}^{2^nw \times 2^nh \times 3} \\), we'll introduce a reducer \\( R: \mathbb{R}^{2w \times 2h \times 3} \to \mathbb{R}^{w \times h \times 3} \\) that halves the width and height dimensions (eg average-pooling).
+To coax our iterated function to be stable, we'll also include an equalizer function \\( E: \mathbb{R}^{w\times h\times 3} \to \mathbb{R}^{w\times h\times 3} \\) that may normalize an image (eg matching the histogram of the original image).
+So now lets redefine the iterated super resolution function \\( SR\_n: \mathbb{R}^{w \times h \times 3} \to \mathbb{R}^{w \times h \times 3} \\),
+$$ SR\_n(X) = E(R(SR\_{n-1}(X))) $$
+
+
+## Results
+
+We'll find some attractive fixed points using the fixed point iteration method.
+The sequence \\( SR\_0(X), SR\_1(X), .., SR\_n(X) \\) will be visualized as frames in a gif showing the convergence to a fixed point.
+I'm iterating over a low-res selfie of my face, however I found very similar results using other pictures or just noise, with \\( n=100 \\) iterations.
+
+<center>
+### Reducer = Average-Pool, Equalizer = Identity
+![](imgs/mean_identity_short.gif)
+
+### Reducer = Average-Pool, Equalizer = Histogram Matching
+![](imgs/mean_histogram.gif)
+
+### Reducer = Min-Pool, Equalizer = Identity
+![](imgs/min_identity.gif)
+
+### Reducer = Min-Pool, Equalizer = Histogram Matching
+![](imgs/min_histogram.gif)
+
+### Reducer = Max-Pool, Equalizer = Identity
+![](imgs/max_identity.gif)
+
+### Reducer = Max-Pool, Equalizer = Histogram Matching
+![](imgs/max_histogram.gif)
+
+</center>
+<br><br>
+If you still feel uncertain about the convergence, below is a gif with \\(n=500\\) iterations as opposed to \\(n=100\\)
+<center>
+### Reducer = Average-Pool, Equalizer = Identity, n = 500 iterations
+![](imgs/mean_identity_long.gif)
+</center>
+
+## Conclusion
+This experiment had somewhat dull results, although I wouldn't say they're totally negative or uninteresting.
+The visualizations suggest that this model amplifies edges, and it seems that the fixed points of this model are sets of black-and-white edges, that may be space-filling.
+
+
+An interesting follow up would be to find fixed points when initialized with images that only contain edges, illuminating if there are specific edge directions, namely horizontal and vertical, that are preferred to others, and if fixed points are necesarily space-filling.
+I'd also be curious about how choice of architecture affects fixed points, especially in terms of edge directions. 
+
+</markdown>
+</body>
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" defer></script>
+
