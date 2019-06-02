@@ -23,11 +23,11 @@ After \\( k \\) trials let \\(G\_k = \sum\_{i=1}^k V(\Omega) \\).
 In this post we'll be developing methods to bound \\( G_k \\).
 
 ## Example
-Let's say there's a casino game that either wins you $60, $1010, or nothing at all.
-It costs $10 to enter, so the net outcomes would be \\( \Omega = \{ -10, 50, 1000 \} \\), let's say with probabilities \\( P(-10)=90%, P(50)=9.9%, P(1000)= 0.1% \\). 
+Let's say there's a lottery that either wins you $60, $1010, or nothing at all.
+It costs $10 to enter, so the net outcomes would be \\( \Omega = \\{ -10, 50, 1000 \\} \\), let's say with probabilities \\( P(-10)=90\%\\), \\( P(50)=9.9\%\\), and \\( P(1000)=0.1\%\\).
 
-After \\( k \\) trials, what are the odds that you won't loss money? That you'll lose more than \\( $1000 \\)?
-We'll be interested in finding an upper bound on the probabilities of the form, \\( P(G\_k \geq Z) \\).
+After \\( k \\) trials, what are the odds that we won't loss money? That we'll make or lose more than \\( $1000 \\)?
+To answer these questions, we'll be finding upper bounds on probabilities of the form \\( P(G\_k \geq Z) \\).
 
 ## Deriving
 The expected value of each trial is
@@ -89,7 +89,7 @@ Although this may not seem awfully tight, asymptotically, this is as good as it 
 a simple analysis shows that the bound is exponential in \\(k\\), \\( \Theta(c^k), \text{ for } 0 < c < 1 \\).
 
 I'm also realizing that in the example I promised to give bounds on the probability of losing more than $1000, \\( P(G\_k < -1000) \\), however I only gave an upper bound, \\( u \\), on the complement, \\( P(G\_k \geq -1000) \leq u \\). 
-We can easily perform a slight change to turn this into a lower bound on \\( P(G\_k < -1000) \\),
+We can easily perform a slight change to convert this into a lower bound on \\( P(G\_k < -1000) \\),
 $$ P(G\_k \geq -1000) \leq u \Longleftrightarrow P(G\_k < -1000) \geq 1 - u  $$
 </markdown>
 
