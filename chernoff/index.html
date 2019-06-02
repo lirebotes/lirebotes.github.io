@@ -1,0 +1,81 @@
+<link rel="stylesheet" type="text/css" href="../util/main.css">
+
+
+<script src='../util/main.js'></script>
+<script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-lite@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-embed@4"></script>
+
+<script src="bounding.js"></script>
+
+<body>
+<markdown>
+<center>
+# Deriving Chernoff Bounds
+</center>
+
+## Definitions
+
+A sample space \\( \Omega \\) is a set of outcomes \\( \Omega = \{a\_1, a\_2, ... \} \\) with associated probabilities \\(P(a_1), ...\\).
+Each time we sample from \\( \Omega \\) we recieve an outcome \\( V(\Omega) \\).
+After \\( k \\) trials let \\(G\_k = \sum\_{i=1}^k V(\Omega) \\).
+
+In this post we'll be developing methods to bound \\( G_k \\).
+
+## Example
+Let's say there's a casino game that either wins you $50, $1000, or nothing at all.
+It costs $10 to enter, so the net outcomes would be \\( \Omega = \{ -10, 40, 990 \} \\), let's say with probabilities \\( P(-10)=90%, P(40)=9.9%, P(990)= 0.1% \\). 
+
+After \\( k \\) trials, what are the odds that you won't loss money? That you'll lose more than \\( $1000 \\)?
+We'll be interested in finding an upper bound on the probabilities of the form, \\( P(G\_k \geq Z) \\).
+
+## Deriving
+The expected value of each trial
+$$
+\mathbb{E}[V(\Omega)] = \sum\_{a \in \Omega} a \cdot P(a)
+$$
+We'll introduce an auxiliary variable, \\(t > 0 \\), to modify the value of each outcome.
+We'll leave the value of \\(t \\) floating for now and resolve it towards the end of the post.
+$$
+\mathbb{E}[e^{t\cdot V(\Omega)}] = \sum\_{a \in \Omega} e^{a\cdot t} \cdot P(a)
+$$
+We now show
+\begin{align}
+\mathbb{E}[e^{t \cdot G_K}] &= \mathbb{E}[e^{t \sum\_{i=1}^k V(\Omega)}] \\\\
+&= \prod\_{i=1}^k \mathbb{E}[e^{t \cdot V(\Omega)}] && \text{ because trials are independent} \\\\
+&= \Big( \mathbb{E}[e^{t \cdot V(\Omega) } ] \Big)^{k} \\\\
+&= \Big(\sum\_{a \in \Omega} e^{a\cdot t} \cdot P(a) \Big)^{k}
+\end{align}
+
+Now we bound the probability on the upper tail, \\( G\_k \geq Z \\),
+\begin{align}
+P(G\_k \geq Z) &= P(e^{t G\_k} \geq e^{t Z}) && \text{ by monotonicity} \\\\
+&\leq \frac{\mathbb{E}[e^{t G\_k}]}{e^{t Z}} && \text{ by Markov's inequality} \\\\
+&= \frac{\Big(\sum\_{a \in \Omega} e^{a\cdot t} \cdot P(a) \Big)^{k}}{e^{t Z}}
+\end{align}
+
+
+To evaluate the bound we'll pick a \\(t > 0 \\) that minimizes the RHS.
+Because it's convex, we can numerically find \\(t\\) using a binary search type algorithm,
+<div>
+<script src="https://gist.github.com/julianoks/9db7fee6bcdbad3955feb4d50f1f4c86.js"></script>
+</div>
+
+## Empirical Evaluation
+Revisiting the example, if we buy \\(k\\) tickets, what are the odds we won't lose money, \\(P(G\_k \geq 0)\\)?
+This may be somewhat difficult to answer, and so we'll ask for an upper bound on this probability.
+We plot the derived bound alongside probabilities found by monte carlo simulation,
+</markdown>
+<center><div id='upperTail'></div></center>
+<script defer>
+makeUpperTailGraph('#upperTail', [[-10, 0.9], [40, 0.099], [990, 0.001]], 0, 1000, 1000);
+</script>
+
+<markdown>
+Even if this doesn't seem awfully tight, note that asymptotically, this bound is very tight.
+A simple analysis shows that the bound is exponential in \\(k\\), \\( \Theta(c^k), \text{ for } 0 < c < 1 \\).
+</markdown>
+
+
+</body>
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" defer></script>
