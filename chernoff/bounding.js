@@ -34,12 +34,12 @@ const upperTail = optimizer((lottery, k, z, t) =>
 * @example
 *	makeUpperTailGraph('body', [[-5, 0.65], [5, 0.34], [95, 0.01]], 0);
 */
-function makeUpperTailGraph(selector, lottery, bound, extent=5000, n_simulations=1000){
+function makeUpperTailGraph(selector, lottery, bound, extent=5000, n_simulations=1000, vegaParams={}){
 	const theoretical = Array(extent).fill().map((_, k) =>
 		({symbol: 'Bound', k: k+1, Probability: upperTail(lottery, k+1, bound)}));
 	const simulation = getSimulationProbabilities(lottery, bound, extent, n_simulations).map(
 		(Probability, k) => ({Probability, k: k+1, symbol: 'Simulation'}));
-	vegaEmbed(selector, {
+	let defaultParams = {
 		"$schema": 'https://vega.github.io/schema/vega-lite/v3.json',
 		"data": {values: [...theoretical,  ...simulation]},
 		"mark": {"type": "line","interpolate": "monotone"},
@@ -48,7 +48,8 @@ function makeUpperTailGraph(selector, lottery, bound, extent=5000, n_simulations
 			"y": {"field": "Probability", "type": "quantitative"},
 			"color": {"field": "symbol", "type": "nominal"}
 		}
-	});
+	}
+	vegaEmbed(selector, Object.assign(defaultParams, vegaParams));
 }
 
 

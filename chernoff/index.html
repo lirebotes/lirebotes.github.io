@@ -23,22 +23,22 @@ After \\( k \\) trials let \\(G\_k = \sum\_{i=1}^k V(\Omega) \\).
 In this post we'll be developing methods to bound \\( G_k \\).
 
 ## Example
-Let's say there's a casino game that either wins you $50, $1000, or nothing at all.
-It costs $10 to enter, so the net outcomes would be \\( \Omega = \{ -10, 40, 990 \} \\), let's say with probabilities \\( P(-10)=90%, P(40)=9.9%, P(990)= 0.1% \\). 
+Let's say there's a casino game that either wins you $60, $1010, or nothing at all.
+It costs $10 to enter, so the net outcomes would be \\( \Omega = \{ -10, 50, 1000 \} \\), let's say with probabilities \\( P(-10)=90%, P(50)=9.9%, P(1000)= 0.1% \\). 
 
 After \\( k \\) trials, what are the odds that you won't loss money? That you'll lose more than \\( $1000 \\)?
 We'll be interested in finding an upper bound on the probabilities of the form, \\( P(G\_k \geq Z) \\).
 
 ## Deriving
-The expected value of each trial
+The expected value of each trial is
 $$
 \mathbb{E}[V(\Omega)] = \sum\_{a \in \Omega} a \cdot P(a)
 $$
-We'll introduce an auxiliary variable, \\(t > 0 \\), to modify the value of each outcome.
-We'll leave the value of \\(t \\) floating for now and resolve it towards the end of the post.
+We'll introduce an auxiliary variable, \\(t > 0 \\), to modify the value of each outcome,
 $$
 \mathbb{E}[e^{t\cdot V(\Omega)}] = \sum\_{a \in \Omega} e^{a\cdot t} \cdot P(a)
 $$
+We'll leave the value of \\(t \\) floating for now and resolve it towards the end of the post.
 We now show
 \begin{align}
 \mathbb{E}[e^{t \cdot G_K}] &= \mathbb{E}[e^{t \sum\_{i=1}^k V(\Omega)}] \\\\
@@ -47,7 +47,7 @@ We now show
 &= \Big(\sum\_{a \in \Omega} e^{a\cdot t} \cdot P(a) \Big)^{k}
 \end{align}
 
-Now we bound the probability on the upper tail, \\( G\_k \geq Z \\),
+Bounding the probability on the upper tail, \\( G\_k \geq Z \\),
 \begin{align}
 P(G\_k \geq Z) &= P(e^{t G\_k} \geq e^{t Z}) && \text{ by monotonicity} \\\\
 &\leq \frac{\mathbb{E}[e^{t G\_k}]}{e^{t Z}} && \text{ by Markov's inequality} \\\\
@@ -66,16 +66,40 @@ Revisiting the example, if we buy \\(k\\) tickets, what are the odds we won't lo
 This may be somewhat difficult to answer, and so we'll ask for an upper bound on this probability.
 We plot the derived bound alongside probabilities found by monte carlo simulation,
 </markdown>
-<center><div id='upperTail'></div></center>
-<script defer>
-makeUpperTailGraph('#upperTail', [[-10, 0.9], [40, 0.099], [990, 0.001]], 0, 1000, 1000);
-</script>
+<center>
+<h3>Won't lose money</h3>
+<div id='upperTailZero'></div>
+</center>
+
+<br>
+<center>
+<h3>We'll make at least $1000</h3>
+<div id='upperTailThousand'></div>
+</center>
+
+<br>
+<center>
+<h3>We won't lose more than $1000</h3>
+<div id='upperTailNegThousand'></div>
+</center>
 
 <markdown>
-Even if this doesn't seem awfully tight, note that asymptotically, this bound is very tight.
-A simple analysis shows that the bound is exponential in \\(k\\), \\( \Theta(c^k), \text{ for } 0 < c < 1 \\).
+## Final Thoughts
+Although this may not seem awfully tight, asymptotically, this is as good as it gets;
+a simple analysis shows that the bound is exponential in \\(k\\), \\( \Theta(c^k), \text{ for } 0 < c < 1 \\).
+
+I'm also realizing that in the example I promised to give bounds on the probability of losing more than $1000, \\( P(G\_k < -1000) \\), however I only gave an upper bound, \\( u \\), on the complement, \\( P(G\_k \geq -1000) \leq u \\). 
+We can easily perform a slight change to turn this into a lower bound on \\( P(G\_k < -1000) \\),
+$$ P(G\_k \geq -1000) \leq u \Longleftrightarrow P(G\_k < -1000) \geq 1 - u  $$
 </markdown>
 
 
 </body>
 <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" defer></script>
+<script defer>
+setTimeout(() => {
+makeUpperTailGraph('#upperTailZero', [[-10, 0.9], [50, 0.099], [1000, 0.001]], 0, 2000, 1000, {width: 300, height: 300});
+makeUpperTailGraph('#upperTailThousand', [[-10, 0.9], [50, 0.099], [1000, 0.001]], 1000, 2000, 1000, {width: 300, height: 300});
+makeUpperTailGraph('#upperTailNegThousand', [[-10, 0.9], [50, 0.099], [1000, 0.001]], -1000, 2000, 1000, {width: 300, height: 300});
+}, 100);
+</script>
