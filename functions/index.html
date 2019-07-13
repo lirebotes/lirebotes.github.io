@@ -15,11 +15,6 @@ img[alt="mixture"] {
 <script src='../util/main.js'></script>
 <body>
 <markdown>
-<center>
-# Functions, tubas, and mixture models
-</center>
-------
-
 ## Relations, Functions
 A relation is a pairing between sets. 
 <center>
@@ -36,10 +31,10 @@ A relation is a pairing between sets.
 </center>
 
 A function is a type of relation where every element in one set (the domain) is mapped to exactly one element in another (the range).
-There are a few special types of functions: 
-- *injective*, or one-to-one, functions map every X to a unique Y. The X and Y columns don't repeat.
-- *surjective*, or onto, functions map every Y from some X. Every X and Y appear in the table (though Y's may repeat).
-- *bijective* functions are injective and surjective, ie every X is mapped to a unique Y, and every Y corresonds to a unique X. Every X and Y appears in the table, and the X and Y columns don't repeat.
+There are a few special types of functions,
+- **injective**, or one-to-one, functions map every X to a unique Y. The X and Y columns don't repeat.
+- **surjective**, or onto, functions map every Y from some X. Every X and Y appear in the table (though Y's may repeat).
+- **bijective** functions are injective and surjective, ie every X is mapped to a unique Y, and every Y corresonds to a unique X. Every X and Y appears in the table, and the X and Y columns don't repeat.
 
 <center>
 
@@ -52,28 +47,27 @@ There are a few special types of functions:
 ### The inverses
 An inverse reverses or "undoes" a function f: X→Y. 
 
-With respect to f, a function g: Y→X is
+With respect to f, a function g: Y→X is a
 - **left inverse** if (g∘f)(x) = x, ∀x.
-- b: Y→X is a **right inverse** if (f∘g)(y) = y, ∀y.
+- **right inverse** if (f∘g)(y) = y, ∀y.
 
 A function that has both a left and right inverse has one unique inverse.
-Let a and b be any left and right inverses:
+This is easy to show; let a and b be any left and right inverses of a function f, then
 <center>
 b = identity∘b = a∘f∘b = a∘identity = a
 </center>
 
-#### Injective functions have a left inverse
+*Injective functions have a left inverse* -
 Because each x∈X is associated with a distinct y∈Y, we can go back to x from y.
 Given y, pick the only x that's associated with y.
-
 However if the function is injective but not surjective, the left inverse will be a partial function because the range of the function, and thus domain of the inverse, will be a subset of Y.
 
-#### Surjective functions have a right inverse
+*Surjective functions have a right inverse* -
 Because every y∈Y is associated with some x∈X, we can go to any y from some x.
 Given y, pick an x that's associated with y.
 
 
-#### Bijective functions have a unique left and right inverse
+*Bijective functions have a unique left and right inverse* -
 Because bijections are injective and surjective, they have both a left and a right inverse, and thus a single inverse.
 
 A few other properties:
@@ -82,7 +76,7 @@ A few other properties:
 - There can only be a bijection between two finite sets if they are the same size
 - A bijection of a space could be presented as a different representation of the same space - one can always switch back and forth.
 
-Some more examples of bijections:
+Some examples of bijections:
 - Change of coordinates
 - Rotations
 - Permutations
@@ -126,7 +120,7 @@ For example, the following relation is not a function,
 	![](https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Multivalued_function.svg/400px-Multivalued_function.svg.png)
 </center>
 What if we related each input to a set containing multiple outputs? This relation is a special kind of function known as a multivalued function.
-Applying this to the above example, we could draw a relation between elements in X and *sets* of elements in Y:
+Applying this to the above example, we could draw a relation between elements in X and sets of elements in Y:
 <center>
 
 |   X   | &nbsp;&nbsp;&nbsp;&nbsp; |   Y   |
@@ -143,7 +137,7 @@ The inverse of a non-injective function can now be represented as a multivalued 
 ### Mixture models
 We can also design a function that emits a random variable, or parameters to a random variable.
 This kind of function allows us to emit a probability distribution over events.
-A mixture model is a statistical model that predicts a random variable as a weighted sum of components, such as gaussians as shown below,
+A mixture model is a statistical model that predicts a random variable as a weighted sum of components, such as gaussians, as shown below,
 
 <center>
 ![mixture](https://www.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/7055/versions/3/screenshot.JPG)
@@ -153,8 +147,8 @@ A mixture model is a statistical model that predicts a random variable as a weig
 
 These kinds of models are exceptionally helpful for problems where many outputs should be associated with a single input; when there are many right answers.
 Consider the problem of predicting where someone will walk.
-A mixture model could give us multiple trajectories, each associated with a probability. 
-A conventional model would give us a point estimate, ie a single trajectory.
+A mixture model could give us multiple trajectories, each with an associated probability. 
+On the other hand, a conventional model would just give us a point estimate, ie a single trajectory.
 If the conventional model used MSE, it should predict the (weighted) average of multiple trajectories,
 and if this problem were a martingale, it'd predict they'd stand still.
 
