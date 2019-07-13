@@ -52,12 +52,15 @@ There are a few special types of functions:
 ### The inverses
 An inverse reverses or "undoes" a function f: X→Y. 
 
-With respect to f, a function:
-- a: Y→X is a **left inverse** if a(f(x)) = x, ∀x.
-- b: Y→X is a **right inverse** if f(b(y)) = y, ∀y.
+With respect to f, a function g: Y→X is
+- **left inverse** if (g∘f)(x) = x, ∀x.
+- b: Y→X is a **right inverse** if (f∘g)(y) = y, ∀y.
 
-In other words, the compositions (a∘f) and (f∘b) are the identity function.
-
+A function that has both a left and right inverse has one unique inverse.
+Let a and b be any left and right inverses:
+<center>
+b = identity∘b = a∘f∘b = a∘identity = a
+</center>
 
 #### Injective functions have a left inverse
 Because each x∈X is associated with a distinct y∈Y, we can go back to x from y.
@@ -71,27 +74,15 @@ Given y, pick an x that's associated with y.
 
 
 #### Bijective functions have a unique left and right inverse
-Because bijections are injective and surjective, they have both a left and a right inverse.
-A function that has both a left and right inverse has one unique inverse.
-Let a and b be any left and right inverses:
-<center>
-b = identity∘b = a∘f∘b = a∘identity = a
-</center>
+Because bijections are injective and surjective, they have both a left and a right inverse, and thus a single inverse.
+
 A few other properties:
 - The inverse of a bijection is a bijection
 - Composition of bijections is a bijection
 - There can only be a bijection between two finite sets if they are the same size
 - A bijection of a space could be presented as a different representation of the same space - one can always switch back and forth.
 
-#### Bijections are cool
-Bijections are cool because you can draw a bijection from one space to a more convenient one, and any assertions or constructions made in one space can be brought back to the other.
-You've probably done this with word problems, where you transform a real-world problem to (and from) a "parallel" representation.
-
-Ideally this parallel representation is easier to understand, visualize, or manipulate.
-For example, you can convert a block-stacking problem into an addition problem, and vice-versa.
-Or you can draw a bijection between numbers and binary representations, which can be plugged into a machine.
-
-More examples of bijections:
+Some more examples of bijections:
 - Change of coordinates
 - Rotations
 - Permutations
@@ -101,41 +92,40 @@ More examples of bijections:
 
 ------
 
-## Talking through a tuba
+## A silly example: talking through a tuba
 <center>
 	![tuba](https://music.psu.edu/sites/music.psu.edu/files/TubaEuph.jpg)
 </center>
 Could a tuba be a function? Sure, you put in a sound, another sound comes out. 
 Lets say you speak plain english into a tuba.
 
-If each input sound produces a distinct tuba sound, it's injective, so its left-invertible and you can reconstruct speach from the tuba.
+If each input sound produces a distinct tuba sound, it's injective, so its left-invertible and we can reconstruct speach from the tuba.
 The pipeline would be: 
 <center>
 speach → tuba → left-inverse → speach.
 </center>
 
-If a tuba could make any sound, your tuba would be surjective. 
-You could find a right-inverse that could make a tuba say anything. 
+If a tuba could make any sound, our tuba would be surjective. 
+Then we could find a right-inverse that could make a tuba say anything. 
 The pipeline would be:
 <center>
 speach → right-inverse → tuba → speach.
 </center>
 
-Although I've never touched a tuba, they seem plausibly injective. A tuba left-inverse would be a fun project, and if someone gives me tuba input-output pairs, we could try to fit a left-inverse using something like a neural network.
-
-I don't think tubas are surjective, because they seem to only be capable of making fart sounds.
-But again, if you were to give me the data, I'd give it a shot!
+Although I've never touched a tuba, they seem plausibly injective.
+Reconstructing speech by approximating a tuba's left-inverse sounds like fun -- I just need the data!
+Unfortunately, I don't think tubas are surjective, because they seem to only be capable of making fart sounds.
 
 ------
 
-## Relations that are not functions
+### Relations that are not functions
 If a relation has an input paired with multiple outputs, it is not a "true" function.
 
-For example, this relation is not a function:
+For example, the following relation is not a function,
 <center>
 	![](https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Multivalued_function.svg/400px-Multivalued_function.svg.png)
 </center>
-Now what if we relate each input to a single set containing multiple outputs? This relation is a special kind of function known as a multivalued funciton.
+What if we related each input to a set containing multiple outputs? This relation is a special kind of function known as a multivalued function.
 Applying this to the above example, we could draw a relation between elements in X and *sets* of elements in Y:
 <center>
 
@@ -147,13 +137,13 @@ Applying this to the above example, we could draw a relation between elements in
 
 </center>
 
-The inverse of a non-injective function (eg the inverse of cos, arccos) can now be represented as a multivalued function.
+The inverse of a non-injective function can now be represented as a multivalued function.
+
 
 ### Mixture models
-One way to represent a multivalued function is a function that maps from an element to a set, eg it may output {d} for some inputs and {b, c} for others. 
-A more general approach is to define the multivalued function as a probability distribution over the range. 
-This can be done using either a PMF (for discrete sets) or a PDF (for continuous sets).
-We can represent our probability density using something called a "mixture model", a convex combination of components (such as gaussians). 
+We can also design a function that emits a random variable, or parameters to a random variable.
+This kind of function allows us to emit a probability distribution over events.
+A mixture model is a statistical model that predicts a random variable as a weighted sum of components, such as gaussians as shown below,
 
 <center>
 ![mixture](https://www.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/7055/versions/3/screenshot.JPG)
@@ -161,16 +151,12 @@ We can represent our probability density using something called a "mixture model
 <span style="font-size: 8pt;">Example: (gaussian) mixture model</span>
 </center>
 
-A mixture model is similar to a kernel density estimate, but with far fewer components, and each component is weighted by a probability.
-To make the PDF we can use a function approximator, like a neural network, that directly ouputs parameters to a mixture model (see mixture density networks).
-
-Using a neural network as a multivalued function is exceptionally helpful for problems where many outputs should be associated with a single input; when there are many right answers.
-
-Consider a confused bot that tries to caption images.
-The dataset it's learning is multilingual; the desired caption could be spanish, english, etc.
-Unfortunately, our bot doesn't know the language it should respond in. 
-Doing it's best, our poor bot responds in a jumble of all the languages.
-If our bot gave a mixture model, it would able to give n distinct responses, and even give its confidence in each response.
+These kinds of models are exceptionally helpful for problems where many outputs should be associated with a single input; when there are many right answers.
+Consider the problem of predicting where someone will walk.
+A mixture model could give us multiple trajectories, each associated with a probability. 
+A conventional model would give us a point estimate, ie a single trajectory.
+If the conventional model used MSE, it should predict the (weighted) average of multiple trajectories,
+and if this problem were a martingale, it'd predict they'd stand still.
 
 </markdown>
 

@@ -29,7 +29,7 @@
 <center>
 # Value Iteration
 </center>
-Above you're seeing a <a href="http://artint.info/html/ArtInt_227.html">Value Iteration</a> algorithm solve a maze/"Grid World" problem. 
+Above you're seeing a <a href="http://artint.info/html/ArtInt_227.html">Value Iteration</a> algorithm solve a maze or what's sometimes called a "Grid World" problem. 
 The color of each cell represents the payoff it provides. 
 The explorer is rewarded for visiting green cells, and punished for red cells. 
 The darker the color, the stronger the payoff. 
@@ -37,28 +37,19 @@ You'll also see arrows that indicate the explorer's "policy", which is the decis
 
 There are two sliders, one for the refresh rate (ie frame rate), and the other for changing the *Discount Factor*. 
 The goal of this maze problem is to maximize the sum of rewards, ∑<sub>i=1</sub><sup>∞</sup>r<sub>i</sub>, where r<sub>i</sub> is the reward at the i<sup>th</sup> step. 
-But wait! There's a bug! That summation might go to infinity. 
-To ensure that the summation is finite, or *converges*, we can incorporate a discount factor, 0 <= γ < 1, so that the goal is to maximize the sum of discounted rewards, ∑<sub>i=1</sub><sup>∞</sup>γ<sup>i</sup>r<sub>i</sub>. 
+That goal is somewhat ill-defined because the summation may go to infinity. 
+To ensure that the summation converges, we include a discount factor, 0 <= γ < 1, so that the goal is to maximize the sum of discounted rewards, ∑<sub>i=1</sub><sup>∞</sup>γ<sup>i</sup>r<sub>i</sub>. 
 You could see by the ratio test that the summation converges (the ratio will be γ). 
+
 Let's go through why the discount factor is important, intuitively.
-- If one explorer got 1 coin every step, and the other got 2, which is preferred? If it weren't for the discount factor, they'd both have a sum of rewards of ∞, meaning that, in a sense, they're kinda the same...weird how infinity works. However, with a discount factor, their sums are finite. With a discount factor of γ=0.9, the first explorer's sum of *discounted rewards* would be 20, and the second explorer's would be 10.
+- If one explorer got 1 coin every step, and the other got 2, which is preferred? If it weren't for the discount factor, they'd both have a sum of rewards of ∞, meaning that, in a sense, they're kinda the same...weird. However, with a discount factor, their sums are finite. With a discount factor of γ=0.9, the first explorer's sum of *discounted rewards* would be 20, and the second explorer's would be 10.
 - The discount factor establishes a trade-off between short-term and long-term rewards. If you didn't discount rewards, you'd be indifferent between recieving a reward now or 50 years from now.
 
+<!--
 Value Iteration, and other Reinforcement Learning algorithms, are intended to solve non-deterministic problems that fall under the framework of <a href="https://en.wikipedia.org/wiki/Markov_decision_process">MDPs</a> (Markov decision processes).
 However, for the sake of simplicity, I made the problem *deterministic* (not random), meaning that an action in a cell will always lead to the same result.
 This really isn't an issue because deterministic problems are just a special case of a non-deterministic problems, where every probability is either 0% or 100%.
-
-
-
-One of my goals was to visualize how the expected rewards propagate, or flow, through the model. 
-With enough slider-sliding, you should be able to observe that the policy *cascades*. 
-Hailing from NYC, it kinda reminds me of a chain reaction you'd see in a large crowd, as if something valuable (or repulsive) was discovered. An interesting analogy is that of a plasmodial slime mold, who is actually a <a href='https://www.hampshire.edu/faculty/physarum-polycephalum'>faculty at my crazy school</a>. Watch it feed:
-<br>
-<center>
-![](https://g.redditmedia.com/UR7NzPq4FKwgnl3wp_mo28_7GFWzuN-3s11PsFE1Tic.gif?w=320&s=fe830d03624e3ba6485ce9f79c969b3b)
-
-![](https://78.media.tumblr.com/0e0f02d7ebe94ff66e27f8d7eff4f54d/tumblr_o5wa8zJH0I1rm6l18o2_500.gif)
-</center>
+-->
 
 </markdown>
 </body>
