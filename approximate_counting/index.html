@@ -29,7 +29,9 @@ For that reason, it's really only useful for data so large that even \\( log\_2(
 However, in this post we'll see that in expectation this gives the correct count (ie is unbiased),
 and that through amplification the variance can be made small.
 We'll also go over and compare a bunch of different ways to do approximate counting.
-
+</markdown>
+<center><div id='top_demo'></div></center>
+<markdown>
 ## How it works
 Approximate counting uses a counter to estimate the actual count.
 Given a counter value of \\( c \\), we'll say the estimated count will be \\( f(c) \\), 
@@ -131,6 +133,7 @@ whereas the mean of powers of 2 can be any number (with sufficient n).
 <br>
 
 <script defer>
+document.querySelector('#top_demo').appendChild(make_interactive());
 document.querySelector('#bottom_demo').appendChild(make_interactive());
 </script>
 
