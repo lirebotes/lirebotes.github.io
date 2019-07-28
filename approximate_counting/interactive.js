@@ -14,7 +14,7 @@ const __interactive_component_raw__ = `
                 <select id="aggregator">
                     ${
                         Object.keys(aggregator_fns)
-                            .map(name => `<option value="${name}">${name}</option>`)
+                            .map(name => `<option value="${name}" ${name == 'mean'? 'selected="selected"' : ''}>${name}</option>`)
                             .join('')
                     }
                 </select>
