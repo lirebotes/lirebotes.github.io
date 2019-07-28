@@ -1,0 +1,139 @@
+
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="../util/main.css">
+
+<script src='../util/main.js'></script>
+<script src="../util/vega/vega@5.js"></script>
+<script src="../util/vega/vega-lite@3.js"></script>
+<script src="../util/vega/vega-embed@4.js"></script>
+<script src='./counting.js'></script>
+<script src='./interactive.js'></script>
+</head>
+<body>
+<markdown>
+<center>
+# Approximate Counting
+</center>
+Approximate counting is a randomized method for counting with minimal space.
+Traditional counting has us increment a counter every increment, 
+requiring \\( \log\_2(n+1) \\) bits to count to a number \\( n \\).
+For example, counting to [a googol](https://en.wikipedia.org/wiki/Googol) 
+requires \\(\lceil log\_2(10^{100} + 1)\rceil = 333\\) bits.
+Approximate counting effectively let's us choose how many bits we want to use,
+for example we'll show how to count to googol using 
+only \\( \lceil \log\_2(\log\_{10}(n)+1) \rceil = 7 \\) bits.
+
+Alas, approximate counting isn't exact, and we end up trading off the saved bits for accuracy.
+For that reason, it's really only useful for data so large that even \\( log\_2(n) \\) bits is prohibitive.
+However, in this post we'll see that in expectation this gives the correct count (ie is unbiased),
+and that through amplification the variance can be made small.
+We'll also go over and compare a bunch of different ways to do approximate counting.
+
+## How it works
+Approximate counting uses a counter to estimate the actual count.
+Given a counter value of \\( c \\), we'll say the estimated count will be \\( f(c) \\), 
+where \\( f: \mathbb{Z}^+ \to \mathbb{R}^+ \\) is monotonically increasing.
+At each INCREMENT operation, we will increment the counter with probability
+\begin{align}
+P(\text{increment} | c) = \frac{1}{f(c+1) - f(c)}
+\end{align}
+The construction of this algorithm is so elegant and simple.
+Regardless of our \\( f \\), we expect \\(f(c+1) - f(c)\\) INCREMENT operations 
+will increase our estimate by  \\(f(c+1) - f(c)\\).
+Lets go over an example to get a better feel for how this works, ...
+
+### An Example
+Let's take an example with \\( f(c) = 10^x \\).
+Then we get \\( f(0), f(1), f(2),... \\) to be \\( 1,10,100,1000... \\), 
+and the probability of incrementing our counter at each stage 
+\\(P(\text{increment} | 0), P(\text{increment} | 1), ... \\)
+will then be \\( 1/9, 1/99, 1/999, ... \\).
+The number of INCREMENTs need to increment our counter follows a geometric distribution.
+In expectation, we'll need \\( 9 \\) INCREMENT operations 
+to get from \\( c=0 \\) to \\( c=1 \\), 
+\\( 99 \\) INCREMENTs to get from \\( c=1 \\) to \\( c=2 \\), and so forth.
+
+To count to googol, or 1e100, our counter needs to reach 100, 
+which takes just \\( \lceil \log\_2(100+1) \rceil = 7 \\) bits.
+
+### Proving the expectation is unbiased
+Each time we call INCREMENT, we expect the estimate to increase by 1,
+\begin{align}
+\mathbb{E}[\text{increase} | c] &= P(\text{increase} | c) (f(c+1) - f(c)) \\\\
+&= \frac{1}{f(c+1) - f(c)} (f(c+1) - f(c)) \\\\
+&= 1
+\end{align}
+By linearity of expectation, after \\( n \\) INCREMENT operations, 
+the expected estimate will increase by \\( n \\).
+
+### Deriving the variance
+It's difficult to derive variance for all functions, so let's focus on two classes of functions,
+linear and exponential functions.
+
+#### Linear functions
+First, for a linear function \\( f(x) = ax+b \\), we have
+\begin{align}
+\text{Var}\_c[ac + b] &= \text{Var}\Big[\sum\_{c=0}^n P(c)(ac + b)\Big] \\\\
+&= \text{Var}\Big[ a \Big(\sum\_{c=0}^n P(c)\Big) + b \Big] \\\\
+&= a^2 \text{Var}\Big[\sum\_{c=0}^n P(c) \Big] \\\\
+&= a^2 \text{Var}\Big[B(n, 1/a) \Big] && \text{forms binomial distribution with } P(\text{increment}) = 1/a \\\\
+&= a^2 \big( n\frac{1}{a}\frac{a-1}{a} \big) \\\\
+&= n(a-1)
+\end{align}
+
+Which is really not very good;
+we're saving a constant \\( \lceil \log\_2(a) \rceil \\) bits at the expense of 
+introducing linear \\(n(a-1)\\) variance.
+
+#### Exponential functions
+For an exponential function \\( f(x) = ab^x + k \\),
+TODO: writeup proof
+\begin{align}
+\text{Var}\_c[ab^c+k] &= a^2(b-1){n \choose 2}
+\end{align}
+Which is better; we're only using \\( \lceil \log\_2(\log\_b(n) - \log\_b(a)) \rceil \\) bits 
+and introducing \\(\Theta(a^2bn^2) \\) variance.
+
+Based on these results, it makes most sense to set \\(a=1\\).
+In Morris's algorithm the function is defined as 
+\\(f(x)=2^x-1 \\) for it's convenient numerical and computational properties.
+
+
+### Reducing variance by amplification
+Like with many randomized algorithms, we can improve our estimates by amplification,
+a process where we run an algorithm multiple times to get a result.
+In this case, we'll have multiple counters and do something like take 
+the mean or median of those counter's estimates.
+
+The key to amplification is figuring out how to combine the results, 
+and then how many results we need to guarantee a certain variance or performance ratio.
+Instead of deriving how many counters we need to get some variance \\(\sigma \\),
+I'll keep things simple and just include it as a slider :)
+
+We can use either the mean or median to aggregate the counters' estimates.
+Asymptotically, the sample median has better convergence properties, 
+with variance \\( \sigma\_{\text{median}} = \Theta(\frac{\sigma}{n}) \\), 
+where \\(n\\) is the number of counters.
+The mean has variance of \\( \sigma\_{\text{mean}} = \frac{\sigma}{\sqrt{n}} \\),
+so if we have many counters, and likely large counts, we would care about asymptotics and prefer the median.
+
+However the sample median also has its downsides.
+Unlike the mean, the median fluctuates a lot, you'll notice that it jumps around erratically.
+Second, the median can only take the form of \\(f(\mathbb{Z})\\).
+For example with \\(f(x) = 2^x\\), the median can only be a power of 2,
+which bounds the mean accuracy of the estimate,
+whereas the mean of powers of 2 can be any number (with sufficient n).
+## The demo
+</markdown>
+
+<center><div id='bottom_demo'></div></center>
+<br>
+
+<script defer>
+document.querySelector('#bottom_demo').appendChild(make_interactive());
+</script>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" defer></script>
+</body>
+</html>
