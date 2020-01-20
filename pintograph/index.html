@@ -150,6 +150,11 @@ function make_table(settings){
 		row += '<input type="range" name='+ escape(key) +' min="'+ String(0.01 * settings[key]) +'" max="'+ String(5 * settings[key]);
 		row += '" value="'+ settings[key] +'" step="'+ String(settings[key] / 10);
 		row += '" oninput="SETTINGS[\''+key+'\']=parseFloat(this.value); update_pintograph();" /></td></tr>';
+		
+		row += '<input type="text" name='+ escape(key) +' min="'+ String(0.01 * settings[key]) +'" max="'+ String(5 * settings[key]);
+		row += '" value="'+ settings[key] +'" step="'+ String(settings[key] / 10);
+		row += '" oninput="SETTINGS[\''+key+'\']=parseFloat(this.value); update_pintograph();" /></td></tr>';
+		
 		table += row;
 	});
 	table += "</table>";
