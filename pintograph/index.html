@@ -149,7 +149,7 @@ function make_table(settings){
 		var row = "<tr><td>" + key + "</td><td>";
 		row += '<input type="range" name='+ escape(key) +' min="'+ String(0.01 * settings[key]) +'" max="'+ String(5 * settings[key]);
 		row += '" value="'+ settings[key] +'" step="'+ String(settings[key] / 10);
-		row += '" oninput="SETTINGS[\''+key+'\']=parseFloat(this.value); update_pintograph();" /></td></tr>';
+		row += '" oninput="SETTINGS[\''+key+'\']=parseFloat(this.value); update_pintograph();" />';
 		
 		row += '<input type="text" name='+ escape(key) +' min="'+ String(0.01 * settings[key]) +'" max="'+ String(5 * settings[key]);
 		row += '" value="'+ settings[key] +'" step="'+ String(settings[key] / 10);
